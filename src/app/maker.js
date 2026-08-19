@@ -20,10 +20,26 @@ const STILL = {
    you are choosing a body here, not meeting him yet. But a specimen frozen
    dead on the slab is a poor advertisement for a creature, so he gets eyes
    that work. */
-const sprout = { gaze: new Gaze(), blinkAt: -9, blinkDur: 0.16, nextBlink: 1.4, nextPlace: 0 };
+/* `body`/`bodyFrom`/`bodyAt` are the same three fields the creature carries,
+   so the preview morphs between shapes with the identical code — picking a
+   tile bends one silhouette into the next rather than cutting to it. */
+const sprout = {
+  gaze: new Gaze(), blinkAt: -9, blinkDur: 0.16, nextBlink: 1.4, nextPlace: 0,
+  body: BODIES[0], bodyFrom: null, bodyAt: -9, t: 0,
+};
+
+/* Hand the renderer a silhouette while the shape is travelling and the plain
+   body once it has arrived — a settled body keeps its cached path. */
+const previewShape = () => (bodyMorphing(sprout)
+  ? { sil: bodySilNow(sprout, sprout.t) }
+  : { body: sprout.body });
 
 function drawPreview(t) {
-  if (t === undefined) { drawStage(preview, { ...STILL, body: draft.body, paint: draft.paint }); return; }
+  if (t === undefined) {
+    drawStage(preview, { ...STILL, ...previewShape(), paint: draft.paint });
+    return;
+  }
+  sprout.t = t;
 
   if (t > sprout.nextPlace) {
     sprout.nextPlace = t + rnd(1.1, 3.0);
@@ -42,7 +58,7 @@ function drawPreview(t) {
 
   const gx = Math.sin(rad(sprout.gaze.yaw)), gy = -Math.sin(rad(sprout.gaze.pitch));
   drawStage(preview, {
-    ...STILL, body: draft.body, paint: draft.paint,
+    ...STILL, ...previewShape(), paint: draft.paint,
     x: gx * 7, y: gy * 5,
     gaze: gazeOf(REST_FACE, sprout.gaze),
     blinkLid: lid,
@@ -61,6 +77,7 @@ const tiles = BODIES.map((b) => {
   paint();
   btn.addEventListener("click", () => {
     draft.body = b;
+    morphBody(sprout, b, sprout.t);
     tiles.forEach((tb) => tb.btn.setAttribute("aria-pressed", String(tb.body === b)));
     drawPreview();
   });
@@ -157,6 +174,9 @@ backBtn.addEventListener("click", () => {
 });
 
 function syncPickers() {
+  /* Snap rather than morph: this is "put back what it actually is", not a
+     choice the person just made. */
+  sprout.body = draft.body; sprout.bodyFrom = null;
   tiles.forEach((tb) => { tb.btn.setAttribute("aria-pressed", String(tb.body === draft.body)); tb.paint(); });
   dots.forEach((d, i) => d.setAttribute("aria-pressed", String(PAINTS[i][1] === draft.paint)));
   refreshTemper();

@@ -8,6 +8,7 @@ const mote = {
   gaze: new Gaze(),
 
   body: BODIES[0], paint: PAINTS[0][1], name: "Mote",
+  bodyFrom: null, bodyAt: -9,   // a change of body morphs; see morphBody
 
   mode: "about", modeUntil: 0,
   place: 0, placeYaw: 0, placePitch: 0,
@@ -54,6 +55,7 @@ function resetMote() {
   mote.cursor = { x: 0, y: 0, has: false };
   mote.lastStim = ""; mote.lastStimAt = -99;
   mote.awaitingTool = false;
+  mote.bodyFrom = null; mote.bodyAt = -9;
   mote.onSay = null; mote.onFace = null;
   pending.length = 0;
   epoch++;

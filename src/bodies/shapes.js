@@ -262,3 +262,41 @@ function polyPath(pts, scale = 1) {
   }
   return d + "Z";
 }
+
+/* ── CHANGING SHAPE ───────────────────────────────────────────────────────
+   Picking a different body is a morph, not a swap. All eight profiles are
+   sampled at the same 64 angles, so they correspond point for point and a
+   straight lerp between any two is a real shape the whole way across — which
+   is the only reason this is four lines rather than a shape-interpolation
+   library.
+
+   Kept here, next to the profiles, rather than in the maker: the live avatar
+   changes body through `setSkin` and the onboarding preview changes it by
+   clicking a tile, and both should look the same. ADR 0006:
+   docs/decisions/0006-embeddable-agent-avatar.md */
+const BODY_MORPH = 0.5;
+
+/* Ask for a new body. `from` snapshots what is CURRENTLY drawn — including a
+   half-finished morph — so clicking through the tiles quickly bends the shape
+   continuously instead of restarting from whichever body it was last settled
+   on. */
+function morphBody(state, body, now) {
+  if (!body || body === state.body) return;
+  state.bodyFrom = bodySilNow(state, now);
+  state.body = body;
+  state.bodyAt = now;
+}
+
+/* The silhouette to draw, and whether it is mid-morph. A settled body returns
+   its plain profile so the renderer can keep using its cached path. */
+function bodySilNow(state, now) {
+  const to = bodySil(state.body);
+  if (!state.bodyFrom) return to;
+  const k = clamp((now - state.bodyAt) / BODY_MORPH);
+  /* Drop the outgoing shape BEFORE interpolating on the final frame, so a
+     settled body is exactly its own profile and not a lerp that lands on it. */
+  if (k >= 1) { state.bodyFrom = null; return to; }
+  return blendSil(state.bodyFrom, to, EASE.inOutCubic(k));
+}
+
+const bodyMorphing = (state) => state.bodyFrom != null;

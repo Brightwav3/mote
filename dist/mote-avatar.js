@@ -686,6 +686,44 @@ function polyPath(pts, scale = 1) {
   return d + "Z";
 }
 
+/* ── CHANGING SHAPE ───────────────────────────────────────────────────────
+   Picking a different body is a morph, not a swap. All eight profiles are
+   sampled at the same 64 angles, so they correspond point for point and a
+   straight lerp between any two is a real shape the whole way across — which
+   is the only reason this is four lines rather than a shape-interpolation
+   library.
+
+   Kept here, next to the profiles, rather than in the maker: the live avatar
+   changes body through `setSkin` and the onboarding preview changes it by
+   clicking a tile, and both should look the same. ADR 0006:
+   docs/decisions/0006-embeddable-agent-avatar.md */
+const BODY_MORPH = 0.5;
+
+/* Ask for a new body. `from` snapshots what is CURRENTLY drawn — including a
+   half-finished morph — so clicking through the tiles quickly bends the shape
+   continuously instead of restarting from whichever body it was last settled
+   on. */
+function morphBody(state, body, now) {
+  if (!body || body === state.body) return;
+  state.bodyFrom = bodySilNow(state, now);
+  state.body = body;
+  state.bodyAt = now;
+}
+
+/* The silhouette to draw, and whether it is mid-morph. A settled body returns
+   its plain profile so the renderer can keep using its cached path. */
+function bodySilNow(state, now) {
+  const to = bodySil(state.body);
+  if (!state.bodyFrom) return to;
+  const k = clamp((now - state.bodyAt) / BODY_MORPH);
+  /* Drop the outgoing shape BEFORE interpolating on the final frame, so a
+     settled body is exactly its own profile and not a lerp that lands on it. */
+  if (k >= 1) { state.bodyFrom = null; return to; }
+  return blendSil(state.bodyFrom, to, EASE.inOutCubic(k));
+}
+
+const bodyMorphing = (state) => state.bodyFrom != null;
+
 /* Bloub's customiser palette, exactly as published in `skins.ts`, with one
    change: the pale "Cream" (#f1efe9) is pure white here. */
 /* ADR 0001: Bloub's customiser palette, unchanged apart from the white.
@@ -1431,6 +1469,7 @@ const mote = {
   gaze: new Gaze(),
 
   body: BODIES[0], paint: PAINTS[0][1], name: "Mote",
+  bodyFrom: null, bodyAt: -9,   // a change of body morphs; see morphBody
 
   mode: "about", modeUntil: 0,
   place: 0, placeYaw: 0, placePitch: 0,
@@ -1477,6 +1516,7 @@ function resetMote() {
   mote.cursor = { x: 0, y: 0, has: false };
   mote.lastStim = ""; mote.lastStimAt = -99;
   mote.awaitingTool = false;
+  mote.bodyFrom = null; mote.bodyAt = -9;
   mote.onSay = null; mote.onFace = null;
   pending.length = 0;
   epoch++;
@@ -2316,7 +2356,8 @@ function mountMote(host, opts = {}) {
     /* Appearance and character. The name is not decoration: it seeds
        temperament, so the same name is always the same animal. */
     setSkin(next = {}) {
-      if (next.body) mote.body = BODY_BY_ID[next.body] || mote.body;
+      /* A change of body MORPHS — it does not swap. See `morphBody`. */
+      if (next.body && BODY_BY_ID[next.body]) morphBody(mote, BODY_BY_ID[next.body], clock);
       if (next.paint) mote.paint = next.paint;
       if (next.name) { mote.name = next.name; mote.temper = temperamentFor(next.name); }
       return api;
@@ -2496,7 +2537,7 @@ function drawFrame(stage, t, dt) {
   const gx = Math.sin(rad(mote.gaze.yaw)), gy = -Math.sin(rad(mote.gaze.pitch));
 
   const rest = {
-    sil: bodySil(mote.body),
+    sil: bodySilNow(mote, t),
     gaze: gazeOf(mix, mote.gaze),
     split: mix.split, eyes: mix.eyes,
   };
@@ -2506,8 +2547,10 @@ function drawFrame(stage, t, dt) {
   const pose = animPose(rest) || rest;
 
   drawStage(stage, {
-    body: pose === rest ? mote.body : undefined,
-    sil: pose === rest ? undefined : pose.sil,
+    /* The cached path is only safe for a settled body: mid-morph the
+       silhouette changes every frame like an animation's does. */
+    body: pose === rest && !bodyMorphing(mote) ? mote.body : undefined,
+    sil: pose === rest && !bodyMorphing(mote) ? undefined : pose.sil,
     paint: mote.paint,
     x: gx * 7, y: gy * 5,
     gaze: pose.gaze, split: pose.split, eyes: pose.eyes,

@@ -155,7 +155,8 @@ function mountMote(host, opts = {}) {
     /* Appearance and character. The name is not decoration: it seeds
        temperament, so the same name is always the same animal. */
     setSkin(next = {}) {
-      if (next.body) mote.body = BODY_BY_ID[next.body] || mote.body;
+      /* A change of body MORPHS — it does not swap. See `morphBody`. */
+      if (next.body && BODY_BY_ID[next.body]) morphBody(mote, BODY_BY_ID[next.body], clock);
       if (next.paint) mote.paint = next.paint;
       if (next.name) { mote.name = next.name; mote.temper = temperamentFor(next.name); }
       return api;
@@ -335,7 +336,7 @@ function drawFrame(stage, t, dt) {
   const gx = Math.sin(rad(mote.gaze.yaw)), gy = -Math.sin(rad(mote.gaze.pitch));
 
   const rest = {
-    sil: bodySil(mote.body),
+    sil: bodySilNow(mote, t),
     gaze: gazeOf(mix, mote.gaze),
     split: mix.split, eyes: mix.eyes,
   };
@@ -345,8 +346,10 @@ function drawFrame(stage, t, dt) {
   const pose = animPose(rest) || rest;
 
   drawStage(stage, {
-    body: pose === rest ? mote.body : undefined,
-    sil: pose === rest ? undefined : pose.sil,
+    /* The cached path is only safe for a settled body: mid-morph the
+       silhouette changes every frame like an animation's does. */
+    body: pose === rest && !bodyMorphing(mote) ? mote.body : undefined,
+    sil: pose === rest && !bodyMorphing(mote) ? undefined : pose.sil,
     paint: mote.paint,
     x: gx * 7, y: gy * 5,
     gaze: pose.gaze, split: pose.split, eyes: pose.eyes,

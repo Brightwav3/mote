@@ -173,6 +173,28 @@ test('destroy puts the creature back, so a remount is a fresh one', async () => 
   second.destroy()
 })
 
+test('changing body morphs rather than swaps', async () => {
+  const { Mote, host } = await mountInStub()
+  const avatar = Mote.mount(host, { manual: true, body: 'cercle' })
+  let t = run(avatar, 1)
+  const body = host.firstChild.all().find((n) => n.tagName === 'path')
+
+  /* A circle is 64 equal radii; a triangle is emphatically not. Sample the
+     drawn path every other frame across the morph and check it travels
+     instead of arriving. */
+  avatar.setSkin({ body: 'triangle' })
+  const seen = new Set()
+  for (let i = 0; i < 40; i++) { t = run(avatar, 1 / 60, t); seen.add(body.getAttribute('d')) }
+  assert.ok(seen.size > 20, `body path took ${seen.size} distinct values across the morph`)
+
+  /* And it settles: once arrived, the path stops changing. */
+  t = run(avatar, 1.5, t)
+  const settled = body.getAttribute('d')
+  t = run(avatar, 0.5, t)
+  assert.equal(body.getAttribute('d'), settled, 'the body never stopped moving')
+  avatar.destroy()
+})
+
 /* ADR 0007: the stream adapter, and the three properties the stream forced on
    the API. docs/decisions/0007-stream-adapter.md */
 test('a model stream drives it end to end', async () => {
