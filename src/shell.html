@@ -1,0 +1,213 @@
+<title>Make a Mote</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;800&family=IBM+Plex+Sans:wght@400;500&display=swap">
+
+<style>
+:root {
+  --bg:     #FFFFFF;
+  --fg:     #16191B;
+  --mut:    #6B7376;
+  --faint:  #A8AEB0;
+  --line:   #E6E9EA;
+  --sunk:   #F5F6F7;
+  --focus:  #16191B;
+}
+:root[data-theme="dark"] {
+  --bg:     #0E1113;
+  --fg:     #ECEFF0;
+  --mut:    #9BA3A6;
+  --faint:  #626A6D;
+  --line:   #262C2F;
+  --sunk:   #171B1D;
+  --focus:  #ECEFF0;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:     #0E1113;
+    --fg:     #ECEFF0;
+    --mut:    #9BA3A6;
+    --faint:  #626A6D;
+    --line:   #262C2F;
+    --sunk:   #171B1D;
+    --focus:  #ECEFF0;
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+button { font: inherit; color: inherit; }
+
+/* ══ shared ══════════════════════════════════════════════════════════════ */
+.view { min-height: 100dvh; display: none; }
+.view.on { display: flex; }
+
+.serif {
+  font-family: Manrope, ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -.035em;
+}
+
+/* ══ onboarding ══════════════════════════════════════════════════════════ */
+#make {
+  flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 24px 56px; gap: 26px;
+}
+.step-label {
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--faint);
+}
+#make h1 { margin: 0; font-size: clamp(30px, 6vw, 46px); text-align: center; }
+
+.preview {
+  width: min(300px, 62vw); aspect-ratio: 1;
+  display: grid; place-items: center;
+}
+.preview svg { width: 100%; height: 100%; display: block; }
+
+.picker { width: min(560px, 100%); display: flex; flex-direction: column; gap: 18px; }
+.picker h2 {
+  margin: 0 0 9px; font-size: 12px; font-weight: 500; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--faint);
+}
+
+.tiles { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+@media (max-width: 520px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
+.tiles button {
+  aspect-ratio: 1; padding: 7px; background: var(--sunk);
+  border: 1.5px solid transparent; border-radius: 11px; cursor: pointer;
+  display: grid; place-items: center;
+  transition: border-color .14s ease, background .14s ease;
+}
+.tiles button svg { width: 100%; height: 100%; display: block; }
+.tiles button:hover { background: var(--line); }
+.tiles button[aria-pressed="true"] { border-color: var(--focus); background: var(--sunk); }
+.tiles button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.dots { display: flex; flex-wrap: wrap; gap: 9px; }
+.dots button {
+  width: 30px; height: 30px; padding: 0; border-radius: 50%;
+  border: 1.5px solid var(--line); cursor: pointer;
+  transition: transform .13s ease, box-shadow .13s ease;
+}
+.dots button:hover { transform: scale(1.13); }
+.dots button[aria-pressed="true"] {
+  transform: scale(1.13);
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--focus);
+}
+.dots button:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
+
+#name {
+  width: 100%; padding: 11px 14px; font: inherit;
+  background: var(--sunk); color: var(--fg);
+  border: 1.5px solid var(--line); border-radius: 11px;
+}
+#name:focus { outline: none; border-color: var(--focus); }
+#name::placeholder { color: var(--faint); }
+
+.temper {
+  margin: -6px 0 0; color: var(--mut); font-size: 14.5px; text-align: center;
+  max-width: 40ch; min-height: 1.5em;
+}
+.go {
+  align-self: center; padding: 13px 32px; border-radius: 999px; cursor: pointer;
+  background: var(--fg); color: var(--bg); border: none;
+  font-size: 16px; letter-spacing: .01em;
+  transition: transform .12s ease, opacity .12s ease;
+}
+.go:hover { transform: translateY(-1px); }
+.go:active { transform: translateY(0); }
+.go:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+
+/* ══ the living page ═════════════════════════════════════════════════════ */
+#live { flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 32px 20px 40px; }
+#field { width: min(560px, 88vw); aspect-ratio: 1; touch-action: none; }
+#field svg { width: 100%; height: 100%; display: block; }
+#given { margin: 0; font-size: clamp(22px, 4vw, 30px); }
+#mood { margin: 0; color: var(--mut); font-size: 14.5px; min-height: 1.5em; text-align: center; }
+#speech {
+  margin: 0; min-height: 1.6em; text-align: center; font-size: 17px;
+  font-family: Manrope, ui-sans-serif, system-ui, sans-serif; font-weight: 500;
+  color: var(--fg); opacity: 0; transition: opacity .3s ease;
+}
+#speech.on { opacity: 1; }
+
+.acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 560px; margin-top: 6px; }
+.acts button {
+  padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  background: transparent; border: 1.5px solid var(--line);
+  font-size: 14.5px; color: var(--mut);
+  transition: border-color .14s ease, color .14s ease;
+}
+.acts button:hover { border-color: var(--focus); color: var(--fg); }
+.acts button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.change {
+  position: fixed; top: 18px; right: 18px; z-index: 2;
+  padding: 7px 16px; border-radius: 999px; cursor: pointer;
+  background: var(--bg); border: 1.5px solid var(--line);
+  font-size: 14px; color: var(--mut);
+  transition: border-color .14s ease, color .14s ease;
+}
+.change:hover { border-color: var(--focus); color: var(--fg); }
+.change:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.back {
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: var(--faint); font-size: 13.5px; text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.back:hover { color: var(--mut); }
+.back[hidden] { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  #speech, .go, .dots button, .tiles button { transition: none; }
+}
+</style>
+
+<!-- ══ 1 · make one ══════════════════════════════════════════════════════ -->
+<section class="view on" id="make">
+  <p class="step-label">One of a kind</p>
+  <h1 class="serif">Make a Mote</h1>
+
+  <div class="preview" id="preview"></div>
+
+  <div class="picker">
+    <div>
+      <h2>Body</h2>
+      <div class="tiles" id="shapes"></div>
+    </div>
+    <div>
+      <h2>Colour</h2>
+      <div class="dots" id="colours"></div>
+    </div>
+    <div>
+      <h2>Name</h2>
+      <input id="name" maxlength="18" placeholder="Mote" autocomplete="off" spellcheck="false">
+    </div>
+  </div>
+
+  <p class="temper" id="temper"></p>
+  <button class="go" id="hatch" type="button">Bring it to life</button>
+  <button class="back" id="back" type="button" hidden>Never mind, go back</button>
+</section>
+
+<!-- ══ 2 · live with it ══════════════════════════════════════════════════ -->
+<section class="view" id="live">
+  <button class="change" id="change" type="button">Change</button>
+  <div id="field"></div>
+  <h1 class="serif" id="given">Mote</h1>
+  <p id="mood"></p>
+  <p id="speech"></p>
+  <div class="acts" id="acts"></div>
+</section>
+

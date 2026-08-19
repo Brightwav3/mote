@@ -1,0 +1,15 @@
+[
+  "lib/math.js",
+  "lib/geometry.js",
+  "faces/expressions.js",
+  "lib/springs.js",
+  "creature/gaze.js",
+  "bodies/shapes.js",
+  "bodies/palette.js",
+  "render/stage.js",
+  "creature/temperament.js",
+  "creature/mote.js",
+  "app/loop.js",
+  "app/acts.js",
+  "app/maker.js"
+]

@@ -1,0 +1,49 @@
+Mote — third-party notices
+==========================
+
+This project contains source code ported from Bloub.
+
+  Bloub — SVG recreation of the x.ai bot avatar
+  Copyright (c) 2026 Jérémy Perret
+  https://github.com/jeremy-prt/bloub
+  Licensed under the MIT License; the full text is in LICENSE-BLOUB.
+
+What is ported, and how closely
+-------------------------------
+
+These are ports, not reimplementations. Where a number or a formula appears
+below, it is Bloub's, unchanged, and the test suite asserts it stays that way.
+
+  src/faces/expressions.js
+      The sixteen expression poses — head yaw/pitch/roll, eye separation, and
+      per-eye width, height, tilt and lid — transcribed from
+      bloub/src/bot/expressions.ts and bloub/src/bot/face.ts (EYE_W, EYE_H,
+      EYE_SPLIT, REST_GAZE). Verified field by field in
+      test/expressions.test.mjs.
+      The seventeenth face, "round", is original to this project.
+
+  src/lib/geometry.js
+      eyeFrames() — the sphere tangent-frame projection that places the eyes,
+      after bloub/src/bot/face.ts eyePoses().
+
+  src/bodies/shapes.js
+      profileFromPolygon, hullOfCircles, superellipseProfile,
+      unionOfCirclesProfile, roundedPolygon, regularPolygonProfile and the
+      Catmull-Rom path emitter, from bloub/src/bot/shape.ts; the eight
+      silhouette definitions and normalisation from bloub/src/bot/skins.ts.
+      Verified radius by radius in test/shapes.test.mjs.
+
+  src/bodies/palette.js
+      The twelve-colour customiser palette from bloub/src/bot/skins.ts.
+
+What is original to Mote
+------------------------
+
+  The behaviour layer: the valence/arousal/dominance affect model, the two
+  timescales of emotion and mood, temperament derived from the creature's
+  name, the attention and oculomotor model (saccades, dwell, gaze breaks),
+  the discrete-expression chooser with crossfade, the scripted episode player,
+  and the maker/live application shell.
+
+Bloub is itself a study of the x.ai bot avatar's visual behaviour. Neither
+Bloub nor this project is affiliated with or endorsed by x.AI.

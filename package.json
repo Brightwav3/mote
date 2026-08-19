@@ -1,0 +1,15 @@
+{
+  "name": "mote",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A small creature you make: pick a body, a colour and a name, then it goes about its own business.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test \"test/*.test.mjs\"",
+    "check": "npm run build && npm test",
+    "serve": "node serve.mjs"
+  },
+  "engines": { "node": ">=20" }
+}
