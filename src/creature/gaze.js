@@ -47,7 +47,7 @@ class Gaze {
 
     // Drift and tremor ride on top of the fixation point, scaled by arousal:
     // a calm creature wanders more, an alert one locks on.
-    const wander = REDUCED ? 0.35 : lerp(1.25, 0.35, arousal);
+    const wander = reducedMotion() ? 0.35 : lerp(1.25, 0.35, arousal);
     this.yaw   = this.fixYaw   + noise(t, 11.3, 0.4) * 2.2 * wander + noise(t, 0.9, 2.0) * 0.16;
     this.pitch = this.fixPitch + noise(t, 9.1, 1.3) * 1.7 * wander + noise(t, 0.7, 4.1) * 0.13;
   }

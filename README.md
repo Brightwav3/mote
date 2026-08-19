@@ -14,11 +14,13 @@ npm run serve     # http://localhost:5199
 ## Using it in your agent
 
 ```bash
-npm run build            # writes dist/mote-avatar.js
+npm install github:Brightwav3/mote
 ```
 
+`dist/` is committed, so a git install needs no build step. Types are included.
+
 ```js
-import Mote from './mote-avatar.js'
+import Mote from 'mote-avatar'
 
 const avatar = Mote.mount(document.getElementById('avatar'), {
   name: 'Ada', body: 'galet', paint: '#3b93f0',
@@ -36,7 +38,8 @@ turn, and each one is a written sequence of faces and animations — see
 | `avatar.idle()` | hands it back to itself |
 | `avatar.listening()` | attends to you and holds it |
 | `avatar.thinking()` | the three dots, then curious |
-| `avatar.tool('search')` | looks away while it waits, says the tool's name |
+| `avatar.tool('search')` | looks away and **waits** — until `toolResult()` |
+| `avatar.toolResult(ok)` | the tool came back; `false` is a failed one |
 | `avatar.speaking(text, ms)` | says it, watching you |
 | `avatar.done()` | pleased, then back to attending |
 | `avatar.shipped()` | excited, then proud — for the long job |
@@ -46,17 +49,45 @@ turn, and each one is a written sequence of faces and animations — see
 | `avatar.interrupted()` | bursts apart and reassembles |
 | `avatar.asleep()` | the session has gone quiet |
 
+### From a model stream
+
+```js
+for await (const e of client.messages.stream({ ... })) avatar.event(e)
+// or: await avatar.runStream(stream)
+```
+
+It maps the Anthropic Messages streaming events onto the states above. Three
+things about it are worth knowing, and all three exist because wiring a real
+stream is what exposed them — see
+[ADR 0007](docs/decisions/0007-stream-adapter.md):
+
+- **Repeating a state while its episode is playing is a no-op.** A stream calls
+  `thinking()` on every delta; without this the creature restarts its script on
+  every token and never reaches its second beat. So the whole API is safe to
+  call from a render loop.
+- **Speech is batched to sentences.** A `speaking()` per token is a face change
+  per token.
+- **`tool()` waits.** A stream never says a tool *finished* — the result comes
+  back in the next request — so `toolResult(ok)` is what ends it. A creature
+  that looks up after a fixed two seconds whether or not the tool returned is
+  the tell that it is animation rather than status.
+
 Between calls it gets on with its own life — looks around, drifts on slow mood
 weather, occasionally plays something to itself. An agent that never calls
 anything still has a face worth looking at, which is the whole argument for an
 avatar over a spinner.
 
-Also on the handle: `setSkin({body, paint, name})`, `skin()`, `say(text, ms)`,
+Also on the handle: `state()` for what it was last put into, `event(e)` and
+`runStream(s)` for a model stream, `setSkin({body, paint, name})`, `skin()`, `say(text, ms)`,
 `look(mode, seconds)`, `animate(id, hold)` for any of the fourteen animations
 by name, `pointer(x, y)` for the rare moments it glances over, `poke()`,
 `after(seconds, fn)` to schedule on the animation clock rather than the wall
 clock, `start()` / `stop()` / `tick(now)` / `destroy()`, and the catalogues
 `animations()`, `bodies()`, `palette()`.
+
+Large-field motion — the burst, the orbit, the comet, the travelling
+exclamation mark — is skipped entirely under `prefers-reduced-motion`. The face
+still changes, so every state stays legible.
 
 **One avatar per page.** The creature's state is module-level on purpose — an
 assistant has one face — and mounting again replaces the first. Making it
@@ -96,7 +127,7 @@ src/
   bodies/       the eight silhouettes and the palette
   creature/     affect, temperament, gaze, behaviour, scripts
   render/       SVG stage
-  embed/        the public API: mount, and the agent-state table
+  embed/        the public API: mount, the agent-state table, the stream adapter
   app/          the demo page — an integrator like any other
   shell.html    markup and stylesheet
   manifest.json evaluation order — the build concatenates in this order

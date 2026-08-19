@@ -11,37 +11,60 @@ let stageSeq = 0;
    every arc in front and the rings stop being orbits and become a doodle. */
 /* ADR 0005: the back/front split and the notch mask exist for the animation
    catalogue. docs/decisions/0005-animation-catalogue.md */
+const SVG_NS = "http://www.w3.org/2000/svg";
+const svgEl = (tag, attrs) => {
+  const n = document.createElementNS(SVG_NS, tag);
+  for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+};
+const add = (parent, tag, attrs) => { const n = svgEl(tag, attrs); parent.appendChild(n); return n; };
+
+/* Built node by node rather than from a markup string. `innerHTML` was shorter
+   and it made the render layer impossible to test without a browser: the whole
+   thing hung on an HTML parser. With the tree built through `createElementNS`
+   and the references kept as they are made, ~40 lines of stub DOM in a test
+   are enough to run a real frame. ADR 0006:
+   docs/decisions/0006-embeddable-agent-avatar.md */
 function makeStage(host, opts = {}) {
   const uid = `s${++stageSeq}`;
-  host.innerHTML =
-    `<svg viewBox="${VIEWBOX}" aria-hidden="${opts.decorative ? "true" : "false"}">` +
-    `<defs>` +
-      `<mask id="${uid}-notch" maskUnits="userSpaceOnUse" x="-150" y="-150" width="300" height="300">` +
-        `<rect x="-150" y="-150" width="300" height="300" fill="#fff"/>` +
-        `<circle class="notch" r="0" fill="#000"/>` +
-      `</mask>` +
-    `</defs>` +
-    `<g class="wrap">` +
-      `<g class="arcsBack"></g><g class="dotsBack"></g>` +
-      `<g class="bodyG" mask="url(#${uid}-notch)"><path class="body"/></g>` +
-      `<g class="eyeA"><g><rect rx="9"/></g></g>` +
-      `<g class="eyeB"><g><rect rx="9"/></g></g>` +
-      `<g class="arcsFront"></g><g class="dotsFront"></g>` +
-      `<circle class="pip" r="0" fill="${NOTIF_BLUE}"/>` +
-    `</g></svg>`;
-  const q = (s) => host.querySelector(s);
+  const svg = add(host, "svg", {
+    viewBox: VIEWBOX,
+    "aria-hidden": opts.decorative ? "true" : "false",
+  });
+
+  const defs = add(svg, "defs");
+  const mask = add(defs, "mask", {
+    id: `${uid}-notch`, maskUnits: "userSpaceOnUse",
+    x: "-150", y: "-150", width: "300", height: "300",
+  });
+  add(mask, "rect", { x: "-150", y: "-150", width: "300", height: "300", fill: "#fff" });
+  const notch = add(mask, "circle", { r: "0", fill: "#000" });
+
+  const wrap = add(svg, "g");
+  const arcsBack = add(wrap, "g");
+  const dotsBack = add(wrap, "g");
+  const bodyG = add(wrap, "g", { mask: `url(#${uid}-notch)` });
+  const body = add(bodyG, "path");
+  const eyes = [0, 1].map(() => {
+    const outer = add(wrap, "g");
+    const inner = add(outer, "g");
+    return { outer, inner, rect: add(inner, "rect", { rx: "9" }) };
+  });
+  const arcsFront = add(wrap, "g");
+  const dotsFront = add(wrap, "g");
+  const pip = add(wrap, "circle", { r: "0", fill: NOTIF_BLUE });
+
   return {
-    uid,
-    defs: q("defs"), notch: q(".notch"), pip: q(".pip"),
-    arcsBack: q(".arcsBack"), arcsFront: q(".arcsFront"),
-    dotsBack: q(".dotsBack"), dotsFront: q(".dotsFront"),
-    wrap: q(".wrap"), bodyG: q(".bodyG"), body: q(".body"),
-    eyes: [
-      { outer: q(".eyeA"), inner: q(".eyeA > g"), rect: q(".eyeA rect") },
-      { outer: q(".eyeB"), inner: q(".eyeB > g"), rect: q(".eyeB rect") },
-    ],
+    uid, svg, defs, notch, pip,
+    arcsBack, arcsFront, dotsBack, dotsFront,
+    wrap, bodyG, body, eyes,
     dotPool: [], arcPool: new Map(),
   };
+}
+
+/* Empty an element without `innerHTML`, for the same reason. */
+function clearHost(host) {
+  while (host.firstChild) host.removeChild(host.firstChild);
 }
 
 /* Decor nodes are pooled rather than rebuilt: a state can ask for ten dots on
@@ -49,7 +72,7 @@ function makeStage(host, opts = {}) {
    waste of the only budget this page has. */
 function dotNode(st, i) {
   if (!st.dotPool[i]) {
-    const g = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const g = svgEl("path");
     st.dotPool[i] = g;
   }
   return st.dotPool[i];
@@ -58,19 +81,18 @@ function dotNode(st, i) {
 function arcNodes(st, id) {
   let n = st.arcPool.get(id);
   if (!n) {
-    const svg = (tag) => document.createElementNS("http://www.w3.org/2000/svg", tag);
-    const grad = svg("linearGradient");
+    const grad = svgEl("linearGradient");
     grad.setAttribute("id", `${st.uid}-${id}`);
     grad.setAttribute("gradientUnits", "userSpaceOnUse");
     const stops = [0, 0.5, 1].map((o) => {
-      const s = svg("stop");
+      const s = svgEl("stop");
       s.setAttribute("offset", String(o));
       grad.appendChild(s);
       return s;
     });
     st.defs.appendChild(grad);
     const mk = () => {
-      const p = svg("path");
+      const p = svgEl("path");
       p.setAttribute("fill", "none");
       p.setAttribute("stroke", `url(#${st.uid}-${id})`);
       p.setAttribute("stroke-linecap", "round");

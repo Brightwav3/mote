@@ -1,0 +1,166 @@
+/* Hand-written, and copied to dist/ by build.mjs.
+
+   Hand-written because the sources are plain concatenated scripts with no
+   imports (ADR 0002), so nothing can generate these; and because the surface
+   an integrator touches is one object with about thirty members, which is
+   small enough to keep honest by hand and large enough that autocomplete is
+   the difference between reading the docs and not.
+
+   If you add a method to the handle, add it here in the same commit —
+   test/agent.test.mjs checks that the twelve agent states stay in step, but
+   nothing checks the rest of this file. */
+
+/** One of the fourteen animations from the catalogue. */
+export type MoteAnimation =
+  | 'idle' | 'thinking' | 'wink' | 'wide' | 'alert' | 'notify' | 'exclaim'
+  | 'sleep' | 'egg' | 'hexagon' | 'play' | 'orbit' | 'burst' | 'comet'
+
+/** One of the eight silhouettes. */
+export type MoteBody =
+  | 'cercle' | 'galet' | 'squircle' | 'capsule'
+  | 'triangle' | 'hexagone' | 'nuage' | 'goutte'
+
+/** Where its attention goes. `viewer` fixates on where the pointer was when
+ *  you called — it is not a follow. */
+export type MoteLook = 'about' | 'viewer' | 'away' | 'inward'
+
+export interface MoteSkin {
+  /** Silhouette id. */
+  body?: MoteBody
+  /** Any CSS hex colour; `palette()` returns the twelve it was designed with. */
+  paint?: string
+  /** Seeds temperament — the same name is always the same animal. */
+  name?: string
+}
+
+export interface MoteMountOptions extends MoteSkin {
+  /** Don't start an internal requestAnimationFrame loop; call `tick` yourself. */
+  manual?: boolean
+  /** Mark the SVG `aria-hidden` — for previews and decorative copies. */
+  decorative?: boolean
+}
+
+export interface MoteState {
+  /** The last agent state it was put into, or null if none yet. */
+  name: string | null
+  /** Whether that state's episode is still playing. */
+  playing: boolean
+  /** Whether a `tool()` call is still waiting for its `toolResult()`. */
+  awaitingTool: boolean
+}
+
+/** An event from a model stream. Shaped after the Anthropic Messages
+ *  streaming events; unknown types are ignored. */
+export interface MoteStreamEvent {
+  type: string
+  delta?: { type?: string; text?: string; stop_reason?: string }
+  content_block?: { type?: string; name?: string }
+  error?: { message?: string }
+  [key: string]: unknown
+}
+
+/**
+ * The handle returned by `Mote.mount`. Every method returns the handle, so
+ * calls chain.
+ *
+ * The primary surface is the states of an agent's turn. Repeating a state
+ * while its episode is still playing is a no-op — a token stream may call
+ * `thinking()` hundreds of times a turn.
+ */
+export interface MoteAvatar {
+  readonly el: Element
+
+  // ── the agent's turn ────────────────────────────────────────────────────
+  /** Hand it back to itself: no state, just its own life. */
+  idle(): MoteAvatar
+  /** You are typing, or the mic is open. */
+  listening(): MoteAvatar
+  /** The model is working. */
+  thinking(): MoteAvatar
+  /** A tool call began. WAITS until `toolResult` — a stream never says a tool
+   *  finished, because the result comes back in the next request. */
+  tool(name?: string): MoteAvatar
+  /** The tool came back. `false` for a failed one. */
+  toolResult(ok?: boolean): MoteAvatar
+  /** Saying something. Call it per sentence, not per token. */
+  speaking(text?: string, ms?: number): MoteAvatar
+  /** The turn landed. */
+  done(): MoteAvatar
+  /** A long job landed — more than `done`, and worth keeping rare. */
+  shipped(): MoteAvatar
+  /** It needs you: a clarifying question, or permission. */
+  needsInput(question?: string): MoteAvatar
+  /** Something arrived while you were elsewhere. */
+  notify(): MoteAvatar
+  /** It failed. */
+  error(message?: string): MoteAvatar
+  /** You stopped it mid-flight. */
+  interrupted(): MoteAvatar
+  /** The session has gone quiet. */
+  asleep(): MoteAvatar
+
+  /** What it was last put into, and whether that is still playing. */
+  state(): MoteState
+
+  // ── driving it from a stream ────────────────────────────────────────────
+  /** One event from a model stream. */
+  event(e: MoteStreamEvent | null | undefined): MoteAvatar
+  /** A whole stream: `await avatar.runStream(client.messages.stream(...))`. */
+  runStream(stream: AsyncIterable<MoteStreamEvent>): Promise<MoteAvatar>
+
+  // ── the creature directly ───────────────────────────────────────────────
+  setSkin(skin: MoteSkin): MoteAvatar
+  skin(): Required<MoteSkin>
+  say(text: string, ms?: number): MoteAvatar
+  look(mode?: MoteLook, seconds?: number): MoteAvatar
+  /** Play one of the fourteen animations by id. */
+  animate(id: MoteAnimation, hold?: number): MoteAvatar
+  animations(): Array<{ id: MoteAnimation; label: string }>
+  bodies(): Array<{ id: MoteBody; label: string }>
+  palette(): Array<{ label: string; hex: string }>
+
+  // ── the page, from its side ─────────────────────────────────────────────
+  /** Where it said something. */
+  onSay(fn: ((text: string, ms: number) => void) | null): MoteAvatar
+  /** Which expression it settled into, and the phrase describing it. */
+  onFace(fn: ((faceId: string, settled: boolean, line: string) => void) | null): MoteAvatar
+  /** Pointer position in -1..1 across the element. Optional — it has a life
+   *  without one. Movement is also what wakes it from `asleep`. */
+  pointer(x: number, y: number): MoteAvatar
+  /** Somebody prodded it. */
+  poke(): MoteAvatar
+
+  // ── lifecycle ───────────────────────────────────────────────────────────
+  /** Advance and draw one frame. Pass a `performance.now()`-style stamp. */
+  tick(now: number): MoteAvatar
+  start(): MoteAvatar
+  stop(): MoteAvatar
+  /** Stops, empties the element, and resets the creature. */
+  destroy(): void
+}
+
+export interface MoteTemperament {
+  baseV: number; baseA: number; baseD: number
+  volatility: number; recovery: number
+  curiosity: number; sociability: number; moodGain: number
+}
+
+export interface MoteStatic {
+  /**
+   * Mount a creature into an element.
+   *
+   * ONE PER PAGE — the creature's state is module-level, and mounting again
+   * destroys the previous one.
+   */
+  mount(host: Element, opts?: MoteMountOptions): MoteAvatar
+  faces(): string[]
+  states(): Array<{ id: MoteAnimation; label: string }>
+  bodies(): Array<{ id: MoteBody; label: string }>
+  palette(): Array<{ label: string; hex: string }>
+  /** What a name would produce, without mounting anything. */
+  describe(name: string): MoteTemperament
+}
+
+declare const Mote: MoteStatic
+export default Mote
+export { Mote }

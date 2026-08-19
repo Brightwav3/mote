@@ -18,8 +18,8 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 /* The states an integrator is promised. Written out, not read from the source:
    a test that imports the list it checks passes on any list. */
-const SURFACE = ['idle', 'listening', 'thinking', 'tool', 'speaking', 'done',
-  'shipped', 'needsInput', 'notify', 'error', 'interrupted', 'asleep']
+const SURFACE = ['idle', 'listening', 'thinking', 'tool', 'toolResult', 'speaking',
+  'done', 'shipped', 'needsInput', 'notify', 'error', 'interrupted', 'asleep']
 
 /* Load `embed/agent.js` ALONE, against stubs, and record what each act plays.
    The acts only touch the rest of the creature from inside their bodies, so
@@ -52,7 +52,7 @@ async function actScripts() {
   return out
 }
 
-test('the agent surface is the twelve documented states', async () => {
+test('the agent surface is the thirteen documented states', async () => {
   const acts = await actScripts()
   assert.equal(Object.keys(acts).sort().join(','), [...SURFACE].sort().join(','))
 })

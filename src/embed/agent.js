@@ -23,7 +23,7 @@
 const AGENT_ACTS = {
   /* Nothing is happening. Not a state so much as the absence of one — this
      hands the creature back to itself. */
-  idle: () => { stopAnim(); epoch++; mote.hold = null; mote.episodeUntil = -9; },
+  idle: () => { stopAnim(); epoch++; mote.awaitingTool = false; mote.hold = null; mote.episodeUntil = -9; },
 
   /* You are typing, or the mic is open. It attends to you and holds it. */
   listening: () => play([
@@ -39,13 +39,34 @@ const AGENT_ACTS = {
   ]),
 
   /* A tool call: the same work, but with something outside itself involved,
-     so it looks away while it waits. */
-  tool: (name) => play([
-    { face: "curious", hold: 0.8, kind: "tool", look: ["away", 2.2],
-      say: name ? [`${name}…`, 1400] : undefined },
-    { face: "neutral", hold: 2.4, anim: "thinking" },
-    { face: "attentive", hold: 1.4 },
-  ]),
+     so it looks away while it waits.
+
+     This one WAITS. A tool call has no duration in a model stream — the event
+     says it began and nothing says it ended, because the result comes back in
+     the next request — so the script re-arms itself until `toolResult` is
+     called. A creature that looks up after a fixed 2.4s whether or not the
+     tool returned is the tell that it is animation rather than status. */
+  tool: (name) => {
+    mote.awaitingTool = true;
+    const beat = () => {
+      play([
+        { face: "curious", hold: 0.8, kind: "tool", look: ["away", 2.2],
+          say: name ? [`${name}…`, 1400] : undefined },
+        { face: "neutral", hold: 2.6, anim: "thinking" },
+      ]);
+      later(3.4, () => { if (mote.awaitingTool) beat(); });
+    };
+    beat();
+  },
+
+  /* The result came back. `ok: false` is a failed tool, which is not the same
+     event as the agent failing — it looks put out, not alarmed. */
+  toolResult: (ok = true) => {
+    mote.awaitingTool = false;
+    play(ok
+      ? [{ face: "attentive", hold: 1.8 }]
+      : [{ face: "unimpressed", hold: 1.6, blink: true }, { face: "attentive", hold: 1.4 }]);
+  },
 
   /* Streaming a reply. The hold is long because speech is long; call it again
      to extend, which is what a stream does anyway. */
@@ -102,6 +123,7 @@ const AGENT_ACTS = {
   /* The session has gone quiet. Not a script: this is how the creature is
      when nobody has been here for a while, so it is expressed as absence. */
   asleep: () => {
+    mote.awaitingTool = false;
     epoch++; stopAnim();
     mote.hold = null; mote.episodeUntil = -9;
     mote.lastInput = clock - 52;
@@ -199,14 +221,56 @@ function mountMote(host, opts = {}) {
       return api;
     },
     stop() { running = false; cancelAnimationFrame(raf); return api; },
-    destroy() { api.stop(); host.innerHTML = ""; mote.onSay = null; mote.onFace = null; if (mounted === api) mounted = null; },
+    /* Put the creature back to how it was found. The state is module-level,
+       so without this a remount inherits the previous avatar's mood, its
+       attention mode and whatever it was in the middle of playing — which
+       looks like a bug the first time an app remounts on a route change. */
+    destroy() {
+      api.stop();
+      cancelAnim();
+      resetMote();
+      clearHost(host);
+      if (mounted === api) mounted = null;
+    },
   };
 
   /* The agent surface, bound onto the handle. Generated from the table so the
-     table stays the only place a state is defined. */
+     table stays the only place a state is defined.
+
+     Repeating a state while its episode is still running is a NO-OP, and that
+     is not an optimisation. A model stream calls `thinking()` on every
+     thinking delta — hundreds of times a turn — and without this the script
+     restarts on every token and the creature never reaches its second beat.
+     Arguments are part of the comparison, so `tool("search")` twice is one
+     call but `tool("read")` after it is a new one. `speaking` is exempt: the
+     text differs every time and saying the next sentence is the point. */
+  /* ADR 0007: the no-op-on-repeat rule and `state()` exist because a model
+     stream calls the same state on every delta.
+     docs/decisions/0007-stream-adapter.md */
+  let lastCall = "";
   for (const [name, fn] of Object.entries(AGENT_ACTS)) {
-    api[name] = (...args) => { mote.lastInput = clock; fn(...args); return api; };
+    api[name] = (...args) => {
+      const sig = name + "|" + args.map((a) => String(a)).join("|");
+      if (name !== "speaking" && sig === lastCall && clock < mote.episodeUntil) return api;
+      lastCall = sig;
+      mote.lastInput = clock;
+      fn(...args);
+      return api;
+    };
   }
+
+  /* Which state it was last put into, and whether that episode is still
+     playing. Enough to drive a status line without tracking it yourself. */
+  api.state = () => ({
+    name: lastCall.split("|")[0] || null,
+    playing: clock < mote.episodeUntil,
+    awaitingTool: mote.awaitingTool === true,
+  });
+
+  /* Events straight from a model stream. See `embed/stream.js`. */
+  const driver = makeStreamDriver(api);
+  api.event = (e) => driver.event(e);
+  api.runStream = (stream) => driver.run(stream);
 
   function step(now) {
     const nowS = now / 1000;

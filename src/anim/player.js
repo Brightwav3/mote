@@ -77,6 +77,11 @@ function leaveAnim() {
 function playAnim(id, hold) {
   const def = STATE_BY_ID[id];
   if (!def) return;
+  /* Large-field motion — the burst, the orbit, the comet, the travelling "!"
+     — is exactly what `prefers-reduced-motion` is about, so it is skipped
+     entirely rather than slowed down. The face still changes, so the state is
+     still legible; it just does not fly across the element. */
+  if (def.big && reducedMotion()) return;
   /* Whatever is showing becomes the thing we fade FROM — including a state
      that was itself only half-arrived. Its own clock keeps running. */
   anim.prev = anim.cur || { def: null, t0: clock };

@@ -124,7 +124,7 @@ const STATES = [
   },
 
   {
-    id: "alert", label: "Alert", duration: 2.4, minDuration: 2, morph: 0.45,
+    big: true, id: "alert", label: "Alert", duration: 2.4, minDuration: 2, morph: 0.45,
     blinkIn: false, baseFace: false, baseBody: false,
     pose: (t) => {
       // Measured travel: -0.087 to +0.732 in 1.5s, ease-in-out, micro-overshoot.
@@ -204,7 +204,7 @@ const STATES = [
   },
 
   {
-    id: "play", label: "Play", duration: 2, morph: 0.5,
+    big: true, id: "play", label: "Play", duration: 2, morph: 0.5,
     blinkIn: true, baseFace: false, baseBody: false,
     pose: (t) => {
       // The triangle holds nearly still while the bouquet crosses it.
@@ -221,7 +221,7 @@ const STATES = [
   },
 
   {
-    id: "orbit", label: "Orbit", duration: 3.4, minDuration: 2.5, morph: 0.6,
+    big: true, id: "orbit", label: "Orbit", duration: 3.4, minDuration: 2.5, morph: 0.6,
     blinkIn: false, baseFace: false, baseBody: false,
     pose: (t) => {
       // Measured rotation: 0.35s ramp, then 1.25 turns a second, anticlockwise.
@@ -252,7 +252,7 @@ const STATES = [
   },
 
   {
-    id: "burst", label: "Burst", duration: 2.6, minDuration: 2.4, morph: 0.4,
+    big: true, id: "burst", label: "Burst", duration: 2.6, minDuration: 2.4, morph: 0.4,
     blinkIn: false, baseFace: false, baseBody: false,
     pose: (t) => {
       // Measured collapse: 1.0 to 0.166 in 0.7s, ease-out, no bounce.
@@ -267,7 +267,7 @@ const STATES = [
   },
 
   {
-    id: "comet", label: "Comet", duration: 2.4, minDuration: 2.4, morph: 0.45,
+    big: true, id: "comet", label: "Comet", duration: 2.4, minDuration: 2.4, morph: 0.45,
     blinkIn: false, baseFace: false, baseBody: false,
     pose: (t) => {
       const collapse = 1 - (1 - COMET_DOT) * EASE.outQuint(clamp(t / 0.55));

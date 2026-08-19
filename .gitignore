@@ -1,4 +1,5 @@
+# dist/ is COMMITTED on purpose: installing this from git is the intended
+# route, and npm never runs a build for a git dependency's consumer.
 node_modules/
-dist/
 .DS_Store
 *.log

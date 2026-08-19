@@ -61,7 +61,21 @@ ADR 0004 exists because of.
 
 **One instance per page.** The creature's state — mood, attention, the
 animation player, the worn expression — is module-level. Mounting twice
-replaces the first.
+replaces the first, and `destroy()` **resets** that state: without it a remount
+inherits the previous avatar's mood and whatever it was mid-way through, which
+looks like a bug the first time an app remounts on a route change.
+
+**Nothing touches the DOM until asked.** `prefers-reduced-motion` used to be
+read at module load, which meant importing the library threw in Node — Next.js,
+Remix, Astro — before a line of the integrator's code ran. It is read lazily
+now, and `makeStage` builds its SVG node by node instead of from a markup
+string, which is also what makes the render layer testable against ~40 lines of
+stub DOM rather than a browser.
+
+**`dist/` is committed and the package is installable from git.** Types are
+hand-written (`src/embed/types.d.ts`, copied to `dist/` by the build) because
+the sources are concatenated plain scripts with no imports, so nothing can
+generate them.
 
 ## Rejected alternatives
 
@@ -111,8 +125,11 @@ every integrator inherit the maker page, the act deck and the beige.
   publishes.
 - The act table is opinionated: an integrator who dislikes `error` being
   startled-then-sheepish has to edit the table rather than pass an option.
-- `speaking()` restarts its episode on every call, so a token-by-token stream
-  should call it per sentence, not per token. Nothing enforces that.
+- `speaking()` is exempt from the no-op-on-repeat rule, so a token-by-token
+  caller can still thrash it. The stream adapter batches to sentences
+  (ADR 0007); a caller not using the adapter must do the same.
+- Hand-written types can drift from the handle. `test/agent.test.mjs` pins the
+  agent states; nothing checks the rest of `types.d.ts`.
 
 ## Enforced in
 
@@ -123,6 +140,10 @@ every integrator inherit the maker page, the act deck and the beige.
 - `build.mjs`
 - `test/agent.test.mjs`
 - `README.md`
+- `package.json`
+- `src/lib/math.js`
+- `src/render/stage.js`
+- `test/mount.test.mjs`
 
 ## Explicit non-decisions
 

@@ -17,7 +17,17 @@ const lerp  = (a, b, t) => a + (b - a) * t;
 const rad   = (d) => (d * Math.PI) / 180;
 const rnd   = (a, b) => a + Math.random() * (b - a);
 const r2    = (v) => Math.round(v * 100) / 100;
-const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* Read lazily, not at load. Reading it here used to be the first thing the
+   module did, which meant `import Mote from "mote-avatar"` threw in Node —
+   Next.js, Remix, Astro, anything that evaluates modules on the server, before
+   a line of the integrator's own code ran. A library may not touch the DOM
+   until it is asked to do something. ADR 0006:
+   docs/decisions/0006-embeddable-agent-avatar.md */
+function reducedMotion() {
+  return typeof window !== "undefined" && typeof window.matchMedia === "function"
+    ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    : false;
+}
 
 /* Deterministic PRNG (mulberry32). Needed because a Mote's character is
    derived from its name: the same name must always produce the same animal. */

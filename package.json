@@ -1,15 +1,52 @@
 {
-  "name": "mote",
-  "version": "0.1.0",
-  "private": true,
-  "description": "A small creature you make: pick a body, a colour and a name, then it goes about its own business.",
+  "name": "mote-avatar",
+  "version": "0.2.0",
+  "description": "An expressive avatar for an AI agent: mount it, then call one method per state of the turn.",
   "license": "MIT",
   "type": "module",
+  "main": "./dist/mote-avatar.js",
+  "module": "./dist/mote-avatar.js",
+  "types": "./dist/mote-avatar.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/mote-avatar.d.ts",
+      "import": "./dist/mote-avatar.js",
+      "default": "./dist/mote-avatar.js"
+    },
+    "./demo": "./dist/index.html",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src",
+    "build.mjs",
+    "NOTICE",
+    "LICENSE",
+    "LICENSE-BLOUB",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "avatar",
+    "agent",
+    "ai",
+    "llm",
+    "svg",
+    "animation",
+    "assistant"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Brightwav3/mote.git"
+  },
   "scripts": {
     "build": "node build.mjs",
     "test": "node --test \"test/*.test.mjs\"",
     "check": "npm run build && npm test",
-    "serve": "node serve.mjs"
+    "serve": "node serve.mjs",
+    "prepare": "node build.mjs"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }

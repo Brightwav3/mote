@@ -22,12 +22,43 @@ const mote = {
   cursor: { x: 0, y: 0, has: false },
   lastStim: "", lastStimAt: -99,
 
+  awaitingTool: false,
+
   /* Set by whoever mounts the creature; both default to nothing happening. */
   onSay: null,        // (text, ms) — it said something
   onFace: null,       // (faceId, settled) — the expression it settled into
 };
 
 let clock = 0;
+
+/* Put the creature back to its birth state. Every field the running animal
+   accumulates is listed here on purpose: this is module-level state, so a
+   second `mount` in the same page inherits whatever the first one was feeling
+   unless it is cleared. ADR 0006:
+   docs/decisions/0006-embeddable-agent-avatar.md */
+function resetMote() {
+  mote.valence = new Spring(0.15, 11, 5.2);
+  mote.arousal = new Spring(0.53, 10, 5.0);
+  mote.dominance = new Spring(0.05, 10, 5.0);
+  mote.mood = new Mood();
+  mote.gaze = new Gaze();
+  mote.restV = 0.15; mote.restA = 0.53; mote.restD = 0.05;
+  mote.mode = "about"; mote.modeUntil = 0;
+  mote.place = 0; mote.placeYaw = 0; mote.placePitch = 0;
+  mote.glanceYaw = 0; mote.glancePitch = 0; mote.lastGlance = -9;
+  mote.nextIdea = clock + 7;
+  mote.blinkAt = -9; mote.blinkDur = 0.16; mote.nextBlink = clock + 2;
+  mote.speakUntil = -9; mote.thinkUntil = -9;
+  mote.hold = null; mote.episodeUntil = -9;
+  mote.lastInput = clock;
+  mote.cursor = { x: 0, y: 0, has: false };
+  mote.lastStim = ""; mote.lastStimAt = -99;
+  mote.awaitingTool = false;
+  mote.onSay = null; mote.onFace = null;
+  pending.length = 0;
+  epoch++;
+}
+
 const blink = (t, dur = 0.16) => { mote.blinkAt = t; mote.blinkDur = dur; };
 
 /* Delayed beats run on HIS clock, not the wall clock.

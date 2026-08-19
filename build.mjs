@@ -47,4 +47,6 @@ const lib = [
   '',
 ].join(NL)
 await writeFile(join(root, 'dist', 'mote-avatar.js'), lib, 'utf8')
-console.log(`built dist/mote-avatar.js — ${core.length} modules, ${(lib.length / 1024).toFixed(1)} KB`)
+await writeFile(join(root, 'dist', 'mote-avatar.d.ts'),
+  await readFile(src(join('embed', 'types.d.ts')), 'utf8'), 'utf8')
+console.log(`built dist/mote-avatar.js — ${core.length} modules, ${(lib.length / 1024).toFixed(1)} KB, + types`)
