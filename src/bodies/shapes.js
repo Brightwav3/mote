@@ -186,3 +186,79 @@ function buildPath(profile, R) {
 /* Bloub's customiser palette, kept as it is: the point of a palette is that
    somebody already balanced it. Eye colour is chosen per body — pale eyes on
    a dark body, dark eyes on a pale one — so cream is a usable body too. */
+/* ── SILHOUETTES IN MOTION ────────────────────────────────────────────────
+   A profile is a shape; a silhouette is that shape POSED — rotated, squashed
+   and offset. The resting body needs none of that, which is why it was not
+   here before: it is the animation catalogue that spins a triangle, drops the
+   ball to a dot and drags it off-centre.
+
+   `toPoints` and the pose fields are bloub/src/bot/shape.ts verbatim: rotate,
+   then squash in screen axes, then translate, then scale. Applying those in
+   any other order gives a different shape, not a differently-placed one. */
+/* ADR 0005: silhouette posing ported from bloub/src/bot/shape.ts.
+   docs/decisions/0005-animation-catalogue.md */
+const EGG_PROFILE = [0.8369,0.8424,0.8497,0.8585,0.8674,0.8775,0.8878,0.8983,0.9089,0.9185,0.9288,0.9374,0.9445,0.9504,0.9543,0.9559,0.9555,0.9519,0.9466,0.9389,0.9302,0.9193,0.9085,0.8969,0.8852,0.8734,0.8625,0.8513,0.8411,0.8325,0.8243,0.8179,0.8137,0.8112,0.8102,0.8128,0.8178,0.8262,0.8374,0.8518,0.8702,0.8922,0.9169,0.9446,0.9741,1.0023,1.0267,1.0433,1.0481,1.0393,1.0216,0.9970,0.9697,0.9418,0.9169,0.8949,0.8760,0.8604,0.8490,0.8394,0.8337,0.8314,0.8305,0.8326];
+
+function poseSil(radii, pose) {
+  return { radii, rot: 0, cx: 0, cy: 0, sx: 1, sy: 1, ...pose };
+}
+/* A circle of any radius. Every state that collapses, pops or bounces is this
+   one call with a different radius, which is why the morphs never tear: the
+   ball and the dot are the same 64 samples. */
+function circleSil(radius, pose = {}) {
+  return poseSil(new Array(PROFILE_SAMPLES).fill(radius), pose);
+}
+function bodySil(body, pose = {}) { return poseSil(body.profile, pose); }
+
+function blendSil(a, b, t) {
+  const radii = new Array(PROFILE_SAMPLES);
+  for (let i = 0; i < PROFILE_SAMPLES; i++) radii[i] = lerp(a.radii[i], b.radii[i], t);
+  /* Shortest way round, so a turn from +170deg to -170deg does not unwind the
+     whole circle on the way. */
+  let dRot = b.rot - a.rot;
+  while (dRot > Math.PI) dRot -= TAU;
+  while (dRot < -Math.PI) dRot += TAU;
+  return {
+    radii, rot: a.rot + dRot * t,
+    cx: lerp(a.cx, b.cx, t), cy: lerp(a.cy, b.cy, t),
+    sx: lerp(a.sx, b.sx, t), sy: lerp(a.sy, b.sy, t),
+  };
+}
+
+function toPoints(s, scale) {
+  const cr = Math.cos(s.rot), sr = Math.sin(s.rot);
+  const out = new Array(PROFILE_SAMPLES);
+  for (let i = 0; i < PROFILE_SAMPLES; i++) {
+    const r = s.radii[i], x = r * COS[i], y = r * SIN[i];
+    out[i] = [(( x * cr - y * sr) * s.sx + s.cx) * scale,
+              (( x * sr + y * cr) * s.sy + s.cy) * scale];
+  }
+  return out;
+}
+
+/* Same Catmull-Rom as the static bodies, but rebuilt every frame — a posed
+   silhouette changes on every one of them, so there is nothing to cache. */
+function silPath(s, R) {
+  const pts = toPoints(s, R);
+  const n = pts.length;
+  const at = (i) => pts[(i % n + n) % n];
+  let d = `M${r2(pts[0][0])} ${r2(pts[0][1])}`;
+  for (let i = 0; i < n; i++) {
+    const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
+    d += `C${r2(p1[0] + (p2[0] - p0[0]) * TENSION)} ${r2(p1[1] + (p2[1] - p0[1]) * TENSION)},` +
+         `${r2(p2[0] - (p3[0] - p1[0]) * TENSION)} ${r2(p2[1] - (p3[1] - p1[1]) * TENSION)},` +
+         `${r2(p2[0])} ${r2(p2[1])}`;
+  }
+  return d + "Z";
+}
+
+/* Exact closed polyline — keeps straight segments, unlike the Catmull-Rom
+   above. The teardrop dot of the leaning "!" is not a disc. */
+function polyPath(pts, scale = 1) {
+  if (pts.length < 3) return "";
+  let d = "";
+  for (let i = 0; i < pts.length; i++) {
+    d += `${i === 0 ? "M" : "L"}${r2(pts[i].x * scale)} ${r2(pts[i].y * scale)}`;
+  }
+  return d + "Z";
+}

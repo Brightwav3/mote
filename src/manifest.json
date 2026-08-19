@@ -6,9 +6,13 @@
   "creature/gaze.js",
   "bodies/shapes.js",
   "bodies/palette.js",
+  "anim/decor.js",
+  "anim/states.js",
   "render/stage.js",
   "creature/temperament.js",
   "creature/mote.js",
+  "anim/player.js",
+  "embed/agent.js",
   "app/loop.js",
   "app/acts.js",
   "app/maker.js"

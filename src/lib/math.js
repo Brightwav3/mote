@@ -42,3 +42,14 @@ function noise(t, period, seed) {
    orthonormal frame, rotate a copy out to each eye's longitude, and project
    orthographically. Foreshortening, tilt and depth-occlusion all fall out of
    that one step. The body stays a flat disc of one colour — all of the volume
+   is carried by how the eyes MOVE, never by shading. */
+
+/* Bloub's easing set, used by the animation catalogue. Ported rather than
+   re-derived: the measured timings in `anim/states.js` were fitted against
+   THESE curves, so a different cubic makes every one of them slightly wrong. */
+/* ADR 0005: docs/decisions/0005-animation-catalogue.md */
+const EASE = {
+  outCubic:   (t) => 1 - Math.pow(1 - t, 3),
+  inOutCubic: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
+  outQuint:   (t) => 1 - Math.pow(1 - t, 5),
+};

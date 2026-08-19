@@ -9,9 +9,11 @@ const preview = makeStage(previewHost, { decorative: true });
 
 /* The preview and every tile are the real renderer holding a still pose, so
    what you pick is exactly what you get. */
+const REST_FACE = poseOf(FACES.find((f) => f.id === "attentive"));
 const STILL = {
-  x: 0, y: 0, sx: 1, sy: 1, lookYaw: 0, lookPitch: 0, blinkLid: 1,
-  mix: poseOf(FACES.find((f) => f.id === "attentive")),
+  x: 0, y: 0, blinkLid: 1,
+  gaze: gazeOf(REST_FACE, { yaw: 0, pitch: 0 }),
+  split: REST_FACE.split, eyes: REST_FACE.eyes,
 };
 /* The preview breathes the same engine, cut right down: it looks about and
    it blinks, and nothing else. No moods, no reactions, no drifting weather —
@@ -42,7 +44,7 @@ function drawPreview(t) {
   drawStage(preview, {
     ...STILL, body: draft.body, paint: draft.paint,
     x: gx * 7, y: gy * 5,
-    lookYaw: sprout.gaze.yaw * 0.45, lookPitch: sprout.gaze.pitch * 0.45,
+    gaze: gazeOf(REST_FACE, sprout.gaze),
     blinkLid: lid,
   });
 }
@@ -126,27 +128,19 @@ refreshTemper();
 function hatch() {
   const first = !hasHatched;
   hasHatched = true;
-  mote.body = draft.body;
-  mote.paint = draft.paint;
-  mote.name = (nameInput.value || "").trim() || "Mote";
-  mote.temper = temperamentFor(mote.name);
-  givenEl.textContent = mote.name;
-  document.title = mote.name;
+  const name = (nameInput.value || "").trim() || "Mote";
+  avatar.setSkin({ body: draft.body.id, paint: draft.paint, name });
+  givenEl.textContent = name;
+  document.title = name;
   makeView.classList.remove("on");
   liveView.classList.add("on");
-  try { localStorage.setItem("mote", JSON.stringify({ body: mote.body.id, paint: mote.paint, name: mote.name })); } catch {}
+  try { localStorage.setItem("mote", JSON.stringify({ body: draft.body.id, paint: draft.paint, name })); } catch {}
 
-  mote.lastInput = clock;
-  if (!first) return;   // coming back from an edit: do not re-introduce him
+  if (!first) return;   // coming back from an edit: do not re-introduce it
 
-  /* He was already busy before you arrived; he notices you a beat later. */
-  pickPlace(false);
-  look("about", 1.9);
-  mote.arousal.push(0.35);
-  later(1.9, () => play([
-    { face: "surprised", hold: 1.0, blink: true, look: ["viewer", 1.5] },
-    { face: "curious", hold: 2.2 },
-  ]));
+  /* It was already busy before you arrived; it notices you a beat later. */
+  avatar.look("about", 1.9);
+  avatar.after(1.9, () => avatar.notify());
 }
 document.getElementById("hatch").addEventListener("click", hatch);
 nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") hatch(); });
@@ -154,8 +148,9 @@ nameInput.addEventListener("keydown", (e) => { if (e.key === "Enter") hatch(); }
 document.getElementById("change").addEventListener("click", openMaker);
 backBtn.addEventListener("click", () => {
   /* Abandoning an edit puts back what he actually is, not the half-made draft. */
-  draft.body = mote.body; draft.paint = mote.paint;
-  nameInput.value = mote.name;
+  const was = avatar.skin();
+  draft.body = BODY_BY_ID[was.body]; draft.paint = was.paint;
+  nameInput.value = was.name;
   syncPickers();
   makeView.classList.remove("on");
   liveView.classList.add("on");

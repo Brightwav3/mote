@@ -23,10 +23,16 @@ export async function load(parts) {
     window: { matchMedia: () => ({ matches: false, addEventListener() {} }) },
   }
   vm.createContext(sandbox)
+  /* The animation names only exist when the anim sources were asked for, and
+     naming an undeclared binding here throws for every caller. */
+  const anim = parts.some((p) => p.startsWith('anim/'))
+    ? ', STATES, STATE_BY_ID, arcRender, RINGS, COMET_RIBBONS, particles, ' +
+      'DOT_X, DOT_R, COMET_DOT, NOTIF_R, NOTIF_DIST'
+    : ''
   vm.runInContext(code + '\n;globalThis.__exports = { ' +
     'clamp, lerp, rad, rnd, noise, createRng, eyeFrames, FACES, poseOf, lerpPose, ' +
     'expressionFor, faceDistance, CROSSFADE, Spring, BODIES, BODY_BY_ID, PROFILE_SAMPLES, ' +
-    'eyeInkFor, PAINTS };', sandbox)
+    'eyeInkFor, PAINTS, EASE, poseSil, circleSil, blendSil, silPath' + anim + ' };', sandbox)
   return sandbox.__exports
 }
 

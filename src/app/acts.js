@@ -1,55 +1,56 @@
-/* ADR 0004: face order here is the specification, not a derived result.
-   docs/decisions/0004-scripted-episodes.md */
+/* ── THE DECK ─────────────────────────────────────────────────────────────
+   Nine things an agent does, driven entirely through the PUBLIC API — these
+   are `avatar.thinking()`, `avatar.tool("search")`, `avatar.error(...)` and
+   nothing else. That is the point of the page: if a button here needs to
+   reach past `Mote.mount` to look right, the API is short of something an
+   integrator will need on their first afternoon.
+
+   Nothing here is an agent. There is no model, no tool call and no work — the
+   whole point is the CREATURE, and what an agent's turn gives it is a reason
+   to wear each face in an order that means something. A face sequence with a
+   cause reads as a mind; the same sequence on a button marked "sad" reads as
+   a menu. */
+/* ADR 0004: the face order behind each of these is the specification, and it
+   lives in the act table, not here. docs/decisions/0004-scripted-episodes.md
+   ADR 0006: the demo is an integrator, not an insider.
+   docs/decisions/0006-embeddable-agent-avatar.md
+   ADR 0005: the animation row below plays the ported catalogue.
+   docs/decisions/0005-animation-catalogue.md */
 const ACTS = [
-  ["Say hello", () => play([
-    { face: "surprised", hold: 1.1, blink: true, kind: "greet", trace: true, look: ["viewer", 1.6] },
-    { face: "attentive", hold: 2.4, say: ["oh — hello.", 1500] },
-  ])],
-
-  ["Praise it", () => play([
-    { face: "excited", hold: 1.5, blink: true, kind: "praise", trace: true, say: ["oh! really?", 1600] },
-    { face: "attentive", hold: 2.4 },
-  ])],
-
-  ["Tell a joke", () => play([
-    { face: "excited", hold: 2.6, kind: "joke", trace: true, blink: true, say: ["ha!", 1200] },
-  ])],
-
-  ["Ask it something", () => play([
-    { face: "confused", hold: 1.3, kind: "ask", trace: true, think: 4.0 },
-    { face: "curious", hold: 1.4 },
-    { face: "suspicious", hold: 1.3 },
-    { face: "curious", hold: 2.4, look: ["viewer", 1.6], say: ["I think so, yes.", 1800] },
-  ])],
-
-  ["Scold it", () => play([
-    { face: "shy", hold: 3.2, kind: "scold", trace: true, blink: true, look: ["away", 2.6] },
-  ])],
-
-  ["Confuse it", () => play([
-    { face: "confused", hold: 2.8, kind: "confuse", trace: true, say: ["...hm?", 1300], look: ["about", 2.4] },
-  ])],
-
-  ["Startle it", () => play([
-    { face: "scared", hold: 1.9, kind: "alarm", trace: true, blink: true },
-    { face: "surprised", hold: 1.4 },
-    { face: "attentive", hold: 1.8 },
-  ])],
-
-  ["Leave it be", () => {
-    epoch++;                      // drop anything still queued
-    mote.episodeUntil = -9;
-    mote.lastInput = clock - 52;
-    mote.cursor.has = false;
-    mote.hold = null;
-  }],
+  ["Give it a task", () => { avatar.listening(); avatar.after(1.0, () => avatar.thinking()); }],
+  ["Call a tool", () => avatar.tool("search")],
+  ["Stream a reply", () => avatar.speaking("here is what I found.", 2600)],
+  ["Finish the turn", () => avatar.done()],
+  ["Ask for permission", () => avatar.needsInput("may I?")],
+  ["Hit an error", () => avatar.error("...that was me.")],
+  ["Interrupt it", () => avatar.interrupted()],
+  ["Background result", () => avatar.notify()],
+  ["Ship the big one", () => avatar.shipped()],
+  ["Leave it be", () => avatar.asleep()],
 ];
 const acts = document.getElementById("acts");
 ACTS.forEach(([label, fn]) => {
   const b = document.createElement("button");
   b.type = "button"; b.textContent = label;
-  b.addEventListener("click", () => { mote.lastInput = clock; fn(); });
+  b.addEventListener("click", fn);
   acts.appendChild(b);
 });
 
 /* ── making one ───────────────────────────────────────────────────────────  */
+/* ── the catalogue, to look at ────────────────────────────────────────────
+   Fourteen buttons and one that plays the lot in the order the reference
+   video cut them. These are not reactions: they carry no mood trace and no
+   speech, they just play. Starting one cancels whatever else was playing,
+   which is why they are all `playAnim` and never queued. */
+/* ADR 0005: docs/decisions/0005-animation-catalogue.md */
+const animsEl = document.getElementById("anims");
+avatar.animations().forEach((s) => {
+  const b = document.createElement("button");
+  b.type = "button"; b.textContent = s.label;
+  b.addEventListener("click", () => avatar.animate(s.id));
+  animsEl.appendChild(b);
+});
+const allBtn = document.createElement("button");
+allBtn.type = "button"; allBtn.textContent = "Play them all";
+allBtn.addEventListener("click", () => playAnimSequence());
+animsEl.appendChild(allBtn);

@@ -1,4 +1,3 @@
-   is carried by how the eyes MOVE, never by shading.                       */
 function spin(u, v, a) {
   const c = Math.cos(a), s = Math.sin(a);
   return [
@@ -54,3 +53,24 @@ function eyeFrames(yaw, pitch, roll, split, R) {
    looked properly furious. They are opposites in control — anger acts, fear
    submits — and separating them on a third axis fixes it. Same for `proud`
    against `shy`, and `suspicious` against `confused`.                       */
+/* ── WHERE HE ACTUALLY LOOKS ──────────────────────────────────────────────
+   An expression carries its own measured head pose, and Bloub's resting one
+   is (yaw 28.49, pitch 28.62, roll -13) — a creature glancing down and to its
+   right. That is correct in the original, where the pointer OVERRIDES the
+   pose's gaze whenever you move the mouse, so you almost never see it. This
+   Mote deliberately does not track the pointer, so the same numbers left it
+   permanently looking at the floor.
+
+   So attention wins most of the argument and the expression keeps a fifth of
+   it: enough for `proud` to lift its chin and `shy` to duck, not enough to
+   decide where he is looking. Roll stays entirely the expression's — a head
+   tilt is part of the face, not part of the aim. */
+/* ADR 0005: docs/decisions/0005-animation-catalogue.md */
+const LOOK_MIX = 0.8;
+function gazeOf(pose, aim) {
+  return {
+    yaw: lerp(pose.yaw, clamp(aim.yaw, -42, 42), LOOK_MIX),
+    pitch: lerp(pose.pitch, clamp(aim.pitch, -27, 27), LOOK_MIX),
+    roll: pose.roll,
+  };
+}

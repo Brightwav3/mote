@@ -34,12 +34,35 @@ below, it is Bloub's, unchanged, and the test suite asserts it stays that way.
       Verified radius by radius in test/shapes.test.mjs.
 
   src/bodies/palette.js
-      The twelve-colour customiser palette from bloub/src/bot/skins.ts.
+      The twelve-colour customiser palette from bloub/src/bot/skins.ts. One
+      change: the pale "Cream" (#f1efe9) is pure white here.
+
+  src/bodies/shapes.js (silhouette posing)
+      poseSil/blendSil/toPoints/silPath/polyPath and the egg profile, from
+      bloub/src/bot/shape.ts and bloub/src/bot/profiles.ts.
+
+  src/lib/math.js
+      The easing set (easeOutCubic, easeInOutCubic, easeOutQuint) from
+      bloub/src/bot/math.ts. The animation timings were fitted against these
+      exact curves.
+
+  src/anim/decor.js
+      The whole decor layer from bloub/src/bot/decor.ts: the hue wheel, the
+      orthographic arc renderer with its front/back depth split, the seeded
+      ring, swoosh and comet-ribbon tables, the three thinking dots, the burst
+      particles and the notification pip constants.
+
+  src/anim/states.js
+      The fourteen-animation catalogue from bloub/src/bot/states.ts, with the
+      measured constants intact — the exclamation-mark bars and teardrop, the
+      triangle's 0.213 orbit radius, and every timing in every state.
+      Verified in test/anim.test.mjs. See docs/decisions/0005-animation-catalogue.md.
 
 What is original to Mote
 ------------------------
 
-  The behaviour layer: the valence/arousal/dominance affect model, the two
+  src/anim/player.js — how a state is blended into the creature's ordinary
+  life — is original, as is the rest of the behaviour layer: the valence/arousal/dominance affect model, the two
   timescales of emotion and mood, temperament derived from the creature's
   name, the attention and oculomotor model (saccades, dwell, gaze breaks),
   the discrete-expression chooser with crossfade, the scripted episode player,

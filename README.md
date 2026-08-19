@@ -11,6 +11,57 @@ npm run check     # build + test
 npm run serve     # http://localhost:5199
 ```
 
+## Using it in your agent
+
+```bash
+npm run build            # writes dist/mote-avatar.js
+```
+
+```js
+import Mote from './mote-avatar.js'
+
+const avatar = Mote.mount(document.getElementById('avatar'), {
+  name: 'Ada', body: 'galet', paint: '#3b93f0',
+})
+
+avatar.onSay((text) => bubble.textContent = text)
+```
+
+Then call it as the turn goes. The whole surface is the states of an agent's
+turn, and each one is a written sequence of faces and animations — see
+[ADR 0006](docs/decisions/0006-embeddable-agent-avatar.md).
+
+| Call | What it shows |
+| --- | --- |
+| `avatar.idle()` | hands it back to itself |
+| `avatar.listening()` | attends to you and holds it |
+| `avatar.thinking()` | the three dots, then curious |
+| `avatar.tool('search')` | looks away while it waits, says the tool's name |
+| `avatar.speaking(text, ms)` | says it, watching you |
+| `avatar.done()` | pleased, then back to attending |
+| `avatar.shipped()` | excited, then proud — for the long job |
+| `avatar.needsInput('may I?')` | the exclamation mark, then asks |
+| `avatar.notify()` | the pip, notched out of its body |
+| `avatar.error('...that was me.')` | alarmed, then owns it |
+| `avatar.interrupted()` | bursts apart and reassembles |
+| `avatar.asleep()` | the session has gone quiet |
+
+Between calls it gets on with its own life — looks around, drifts on slow mood
+weather, occasionally plays something to itself. An agent that never calls
+anything still has a face worth looking at, which is the whole argument for an
+avatar over a spinner.
+
+Also on the handle: `setSkin({body, paint, name})`, `skin()`, `say(text, ms)`,
+`look(mode, seconds)`, `animate(id, hold)` for any of the fourteen animations
+by name, `pointer(x, y)` for the rare moments it glances over, `poke()`,
+`after(seconds, fn)` to schedule on the animation clock rather than the wall
+clock, `start()` / `stop()` / `tick(now)` / `destroy()`, and the catalogues
+`animations()`, `bodies()`, `palette()`.
+
+**One avatar per page.** The creature's state is module-level on purpose — an
+assistant has one face — and mounting again replaces the first. Making it
+multi-instance is a real refactor, not a flag.
+
 ## What it does
 
 **The name decides the creature.** A hash of the name seeds temperament —
@@ -45,15 +96,18 @@ src/
   bodies/       the eight silhouettes and the palette
   creature/     affect, temperament, gaze, behaviour, scripts
   render/       SVG stage
-  app/          frame loop, stimulus deck, maker UI
+  embed/        the public API: mount, and the agent-state table
+  app/          the demo page — an integrator like any other
   shell.html    markup and stylesheet
   manifest.json evaluation order — the build concatenates in this order
 docs/decisions/ ADRs: why it is shaped this way
 test/           node:test, no framework
 ```
 
-`build.mjs` concatenates `src/` into `dist/index.html`. There is no bundler and
-no lockfile; see [ADR 0002](docs/decisions/0002-single-file-build.md).
+`build.mjs` emits two targets from the one manifest: `dist/index.html`, the demo,
+and `dist/mote-avatar.js`, the creature alone as an ES module. The split is
+`app/`. There is no bundler and no lockfile; see
+[ADR 0002](docs/decisions/0002-single-file-build.md).
 
 ## Provenance
 

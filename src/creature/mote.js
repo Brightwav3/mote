@@ -21,6 +21,10 @@ const mote = {
   lastInput: 0,
   cursor: { x: 0, y: 0, has: false },
   lastStim: "", lastStimAt: -99,
+
+  /* Set by whoever mounts the creature; both default to nothing happening. */
+  onSay: null,        // (text, ms) — it said something
+  onFace: null,       // (faceId, settled) — the expression it settled into
 };
 
 let clock = 0;
@@ -77,6 +81,15 @@ function play(steps) {
         exact: true, blink: st.blink, kind: st.kind,
         trace: st.trace === true,
       });
+      /* A beat may name an animation from the catalogue, which then plays for
+         exactly that beat and then puts itself away. A beat that names none
+         leaves a running animation alone — it does NOT cut it. Cutting was
+         the first version and it was wrong in the most visible way possible:
+         every script the creature plays to itself passes through beats with
+         no animation, so any orbit or burst was killed mid-turn by whatever
+         it happened to think of next.
+         ADR 0005: docs/decisions/0005-animation-catalogue.md */
+      if (st.anim) playAnim(st.anim, st.hold);
       if (st.say) say(st.say[0], st.say[1]);
       if (st.look) look(st.look[0], st.look[1]);
       if (st.think) { mote.thinkUntil = clock + st.think; look("inward", st.think); }
@@ -137,11 +150,14 @@ function react(faceId, hold, opts = {}) {
   return n;
 }
 
-const speechEl = document.getElementById("speech");
+/* Speech leaves through a callback rather than into an element. The creature
+   does not know it is on a page: whoever mounted it decides whether a line
+   becomes a bubble, a caption or nothing at all. That is the whole difference
+   between a demo and something you can embed. ADR 0006:
+   docs/decisions/0006-embeddable-agent-avatar.md */
 function say(text, ms) {
-  speechEl.textContent = text;
-  speechEl.classList.add("on");
   mote.speakUntil = clock + ms / 1000;
+  if (mote.onSay) mote.onSay(text, ms);
 }
 
 /* Looking at you means looking at WHERE YOU WERE when he decided to look.
@@ -277,7 +293,10 @@ function direct(t) {
 
   if (t > mote.nextIdea && mote.mode !== "asleep" && t > mote.episodeUntil) {
     mote.nextIdea = t + rnd(1.8, 4.6) / clamp(mote.temper.curiosity, 0.5, 1.8);
-    if (!mote.hold || t > mote.hold.until) idea();
+    /* Not while something is playing: an idea that lands mid-animation used to
+       interrupt it, and the creature has nothing to say that is worth cutting
+       an orbit in half for. */
+    if (!animBusy() && (!mote.hold || t > mote.hold.until)) idea();
   }
 
   if (t > mote.modeUntil && mote.mode !== "asleep") {
@@ -308,8 +327,6 @@ const MOODLINE = {
   sad: "a bit downcast", angry: "distinctly unimpressed with you",
   scared: "alarmed", unimpressed: "bored", sleepy: "nearly asleep",
 };
-const moodEl = document.getElementById("mood");
-let shownMood = "";
 
 /* ── the frame ────────────────────────────────────────────────────────────
    Every body channel is a spring or a follower, so none of them can step.

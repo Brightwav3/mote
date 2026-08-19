@@ -1,20 +1,24 @@
-/* Bloub's customiser palette, exactly as published in `skins.ts`. Twelve
-   paints; the eye colour is chosen per paint rather than fixed, so the pale
-   ones are usable bodies too. */
-/* ADR 0001: Bloub's customiser palette, unchanged.
+/* Bloub's customiser palette, exactly as published in `skins.ts`, with one
+   change: the pale "Cream" (#f1efe9) is pure white here. */
+/* ADR 0001: Bloub's customiser palette, unchanged apart from the white.
    docs/decisions/0001-port-bloub-verbatim.md */
 const PAINTS = [
   ["Ink", "#0a0a0c"], ["Brown", "#8b5e3c"], ["Red", "#e8483f"],
   ["Orange", "#f08a24"], ["Amber", "#f0b429"], ["Green", "#3ecf8e"],
   ["Turquoise", "#2fbfa0"], ["Blue", "#3b93f0"], ["Violet", "#8b5cf6"],
-  ["Pink", "#e152b0"], ["Grey", "#a3a3a3"], ["Cream", "#f1efe9"],
+  ["Pink", "#e152b0"], ["Grey", "#a3a3a3"], ["White", "#ffffff"],
 ];
 
-/* Pick the eye colour that actually contrasts more against the body, rather
-   than switching on a luminance threshold. A threshold looks equivalent and is
-   not: mid-tone paints sit near the crossover, and the fixed cut chose white
-   for orange at 3.48:1 when dark ink would have given 5.20:1. Measured by
-   WCAG contrast ratio, best-of-two, so every paint in the palette clears 4.5.  */
+/* The eyes are white on every body but the white one, which takes dark ink.
+   This is Bloub's own arrangement — a single `--ink` for the whole cast — and
+   it is a look, not a contrast optimum: measured, white on Amber is 1.75:1 and
+   on Grey 1.93:1, well under the 3:1 that WCAG 1.4.11 asks of a non-text
+   graphic. Chosen deliberately over the best-of-two rule that used to live
+   here, which kept every paint above 4.5:1 but gave the creature dark eyes on
+   half the palette and light eyes on the other half — one animal wearing two
+   different faces depending on its colour. `contrastRatio` stays below so the
+   cost stays measurable rather than forgotten. */
+const WHITE_BODY = "#ffffff";
 const INKS = ["#14181A", "#FFFFFF"];
 
 function relLuminance(hex) {
@@ -30,5 +34,5 @@ function contrastRatio(a, b) {
 }
 
 function eyeInkFor(hex) {
-  return contrastRatio(hex, INKS[0]) >= contrastRatio(hex, INKS[1]) ? INKS[0] : INKS[1];
+  return hex.toLowerCase() === WHITE_BODY ? INKS[0] : INKS[1];
 }
