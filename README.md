@@ -29,6 +29,22 @@ const avatar = Mote.mount(document.getElementById('avatar'), {
 avatar.onSay((text) => bubble.textContent = text)
 ```
 
+For compact presence surfaces, `avatar.snapshot(host, skin)` copies the last
+rendered SVG frame into a decorative host without mounting another live
+creature. The optional `skin` can choose a body, paint and name for a distinct
+compact persona; see [ADR 0008](docs/decisions/0008-snapshot-boundary.md).
+
+Multiple live Motes can coexist. Each `Mote.mount(host, opts)` call owns its own
+mood, attention, episode queue, animation player and animation clock, so agent
+rows can each keep a living identity while a selected Mote occupies the main
+presence surface. Destroying one handle only clears its own host; see
+[ADR 0009](docs/decisions/0009-multi-instance-agent-avatars.md).
+
+Compact agent rows may pass `ambient: false`. The instance still animates
+runtime states and keeps its own life, but it does not autonomously wander its
+gaze or mood between runtime events. This keeps a dense sidebar legible while
+the selected main Mote can retain the fuller ambient behavior.
+
 Then call it as the turn goes. The whole surface is the states of an agent's
 turn, and each one is a written sequence of faces and animations — see
 [ADR 0006](docs/decisions/0006-embeddable-agent-avatar.md).
@@ -89,9 +105,10 @@ Large-field motion — the burst, the orbit, the comet, the travelling
 exclamation mark — is skipped entirely under `prefers-reduced-motion`. The face
 still changes, so every state stays legible.
 
-**One avatar per page.** The creature's state is module-level on purpose — an
-assistant has one face — and mounting again replaces the first. Making it
-multi-instance is a real refactor, not a flag.
+**Each mount is its own creature.** The implementation keeps the historical
+plain-script source layout, but every public handle gets an isolated runtime
+context. A page may therefore show several agents without sharing mood,
+attention, animation or tool-wait state.
 
 ## What it does
 

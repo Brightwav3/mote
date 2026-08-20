@@ -19,6 +19,7 @@
    agent that never calls anything still has a face worth looking at, which is
    the entire argument for an avatar over a spinner. */
 /* ADR 0006: docs/decisions/0006-embeddable-agent-avatar.md */
+/* ADR 0009: docs/decisions/0009-multi-instance-agent-avatars.md */
 
 const AGENT_ACTS = {
   /* Nothing is happening. Not a state so much as the absence of one — this
@@ -131,19 +132,42 @@ const AGENT_ACTS = {
   },
 };
 
-/* Mount a creature into an element and get back a handle.
+/* Each legacy creature helper still reads the shared names `mote`, `clock`,
+   `pending`, `epoch` and `anim`. A mount owns a context containing those
+   mutable values; calls switch into that context for their duration. This
+   keeps the plain concatenated source intact while making every handle's mood,
+   attention, script queue and animation player independent. */
+/* ADR 0009: docs/decisions/0009-multi-instance-agent-avatars.md */
+function makeMoteRuntimeContext() {
+  const previous = { mote, clock, pending, epoch, anim };
+  mote = makeMoteState();
+  clock = 0;
+  pending = [];
+  epoch = 0;
+  anim = makeAnimState();
+  const context = { mote, clock, pending, epoch, anim };
+  mote = previous.mote; clock = previous.clock; pending = previous.pending; epoch = previous.epoch; anim = previous.anim;
+  return context;
+}
 
-   ONE PER PAGE. The creature's state — mood, attention, the animation player,
-   the worn expression — is module-level, deliberately: it is one animal, and
-   threading an instance through every function bought nothing the demo or an
-   agent UI needed. Mounting twice replaces the first. If you ever need two,
-   that is a real refactor and not a flag. */
-let mounted = null;
+function withMoteRuntimeContext(context, fn) {
+  const previous = { mote, clock, pending, epoch, anim };
+  mote = context.mote; clock = context.clock; pending = context.pending; epoch = context.epoch; anim = context.anim;
+  try {
+    return fn();
+  } finally {
+    context.mote = mote; context.clock = clock; context.pending = pending; context.epoch = epoch; context.anim = anim;
+    mote = previous.mote; clock = previous.clock; pending = previous.pending; epoch = previous.epoch; anim = previous.anim;
+  }
+}
+
+/* Mount a creature into an element and get back a handle. Multiple handles are
+   intentionally allowed: each has its own runtime context and animation loop. */
 
 function mountMote(host, opts = {}) {
   if (!host) throw new Error("mote: mount needs an element");
-  if (mounted) mounted.destroy();
 
+  const context = makeMoteRuntimeContext();
   const stage = makeStage(host, { decorative: opts.decorative === true });
   let running = false;
   let raf = 0;
@@ -154,43 +178,90 @@ function mountMote(host, opts = {}) {
 
     /* Appearance and character. The name is not decoration: it seeds
        temperament, so the same name is always the same animal. */
-    setSkin(next = {}) {
+    setSkin(next = {}) { return withMoteRuntimeContext(context, () => {
       /* A change of body MORPHS — it does not swap. See `morphBody`. */
       if (next.body && BODY_BY_ID[next.body]) morphBody(mote, BODY_BY_ID[next.body], clock);
       if (next.paint) mote.paint = next.paint;
       if (next.name) { mote.name = next.name; mote.temper = temperamentFor(next.name); }
       return api;
-    },
+    }); },
 
     /* Where its attention goes. `viewer` is a fixation on where the pointer
        was when you called, NOT a follow — continuous tracking reads as a
        targeting reticle rather than as a creature. */
-    look(mode = "about", seconds = 1.4) { look(mode, seconds); return api; },
+    look(mode = "about", seconds = 1.4) { return withMoteRuntimeContext(context, () => { look(mode, seconds); return api; }); },
 
     /* What it currently is. Enough to save and restore one. */
-    skin: () => ({ body: mote.body.id, paint: mote.paint, name: mote.name }),
+    skin: () => withMoteRuntimeContext(context, () => ({ body: mote.body.id, paint: mote.paint, name: mote.name })),
+
+    /* ADR 0008-snapshot-boundary: Copy the last frame into a decorative host without mounting another
+       creature. This is deliberately a rendered SVG snapshot, not a CSS
+       approximation: the page may use it for compact presence surfaces while
+       the mounted handle remains the only live Mote on the page. */
+    snapshot(snapshotHost, options = {}) {
+      if (!snapshotHost) throw new Error("mote: snapshot needs an element");
+      clearHost(snapshotHost);
+      const clone = stage.svg.cloneNode(true);
+      clone.setAttribute("aria-hidden", "true");
+
+      /* SVG paint/mask references are document-global. Give each copy fresh
+         ids so several sidebar rows cannot accidentally resolve one another's
+         definitions. */
+      const idMap = new Map();
+      const nodes = [clone, ...clone.querySelectorAll("*")];
+      nodes.filter((node) => node.getAttribute("id")).forEach((node) => {
+        const oldId = node.getAttribute("id");
+        const nextId = `${oldId}-snapshot-${++stageSeq}`;
+        idMap.set(oldId, nextId);
+        node.setAttribute("id", nextId);
+      });
+      nodes.forEach((node) => {
+        node.getAttributeNames().forEach((name) => {
+          const value = node.getAttribute(name);
+          if (!value) return;
+          let next = value;
+          idMap.forEach((replacement, oldId) => {
+            next = next.replaceAll(`#${oldId}`, `#${replacement}`);
+          });
+          if (next !== value) node.setAttribute(name, next);
+        });
+      });
+      const bodyNode = nodes.find((node) => node.getAttribute("data-mote-body") === "true");
+      if (bodyNode && options.body && BODY_BY_ID[options.body]) {
+        bodyNode.setAttribute("d", profilePath(BODY_BY_ID[options.body], R));
+      }
+      if (bodyNode && options.paint) {
+        bodyNode.setAttribute("fill", options.paint);
+        const ink = eyeInkFor(options.paint);
+        nodes.filter((node) => node.tagName === "rect" && node.getAttribute("rx") !== null)
+          .forEach((node) => node.setAttribute("fill", ink));
+      }
+      if (options.name) clone.setAttribute("data-mote-name", options.name);
+      snapshotHost.appendChild(clone);
+      return api;
+    },
 
     /* Schedule on the ANIMATION clock, not the wall clock. Exposed because an
        integrator chaining two calls — listen, then think a beat later — would
        otherwise reach for setTimeout, which fires against a frozen creature
        when the tab is hidden and takes the sequence apart. See ADR 0004. */
-    after(seconds, fn) { later(seconds, fn); return api; },
-    say(text, ms = 1800) { say(text, ms); return api; },
+    after(seconds, fn) { return withMoteRuntimeContext(context, () => { later(seconds, fn); return api; }); },
+    say(text, ms = 1800) { return withMoteRuntimeContext(context, () => { say(text, ms); return api; }); },
 
     /* One of the fourteen, by id, for anyone who wants the vocabulary
        directly. */
-    animate(id, hold) { playAnim(id, hold); return api; },
+    animate(id, hold) { return withMoteRuntimeContext(context, () => { playAnim(id, hold); return api; }); },
     animations: () => STATES.map((s) => ({ id: s.id, label: s.label })),
     bodies: () => BODIES.map((b) => ({ id: b.id, label: b.label })),
     palette: () => PAINTS.map(([label, hex]) => ({ label, hex })),
 
     /* Where the creature's own voice goes, if anywhere. */
-    onSay(fn) { mote.onSay = fn; return api; },
-    onFace(fn) { mote.onFace = fn; return api; },
+    onSay(fn) { return withMoteRuntimeContext(context, () => { mote.onSay = fn; return api; }); },
+    onFace(fn) { return withMoteRuntimeContext(context, () => { mote.onFace = fn; return api; }); },
 
     /* A pointer position, in -1..1 across the element, for the rare moments
        it chooses to glance over. Optional: it has a life without one. */
-    pointer(x, y) {
+    pointer(x, y) { return withMoteRuntimeContext(context, () => {
       mote.cursor = { x: clamp(x, -1.6, 1.6), y: clamp(y, -1.6, 1.6), has: true };
       mote.lastInput = clock;
       /* Movement is what wakes it. Anything else — a call, a tick — leaves a
@@ -201,26 +272,26 @@ function mountMote(host, opts = {}) {
         blink(clock, 0.24);
       }
       return api;
-    },
-    poke() {
+    }); },
+    poke() { return withMoteRuntimeContext(context, () => {
       mote.lastInput = clock;
       react("surprised", 1.0, { kind: "poke", blink: true, power: 0.8 });
       look("viewer", 1.2);
       return api;
-    },
+    }); },
 
     /* Drive it yourself — pass a `performance.now()`-style millisecond stamp.
        `mount` starts its own loop unless you asked for `manual`. */
-    tick(now) { step(now); return api; },
+    tick(now) { return withMoteRuntimeContext(context, () => { step(now); return api; }); },
 
-    start() {
+    start() { return withMoteRuntimeContext(context, () => {
       if (running) return api;
       running = true;
       last = performance.now() / 1000;
-      const loop = (now) => { if (!running) return; step(now); raf = requestAnimationFrame(loop); };
+      const loop = (now) => { if (!running) return; withMoteRuntimeContext(context, () => step(now)); raf = requestAnimationFrame(loop); };
       raf = requestAnimationFrame(loop);
       return api;
-    },
+    }); },
     stop() { running = false; cancelAnimationFrame(raf); return api; },
     /* Put the creature back to how it was found. The state is module-level,
        so without this a remount inherits the previous avatar's mood, its
@@ -228,10 +299,8 @@ function mountMote(host, opts = {}) {
        looks like a bug the first time an app remounts on a route change. */
     destroy() {
       api.stop();
-      cancelAnim();
-      resetMote();
+      withMoteRuntimeContext(context, () => { cancelAnim(); resetMote(); });
       clearHost(host);
-      if (mounted === api) mounted = null;
     },
   };
 
@@ -251,22 +320,24 @@ function mountMote(host, opts = {}) {
   let lastCall = "";
   for (const [name, fn] of Object.entries(AGENT_ACTS)) {
     api[name] = (...args) => {
-      const sig = name + "|" + args.map((a) => String(a)).join("|");
-      if (name !== "speaking" && sig === lastCall && clock < mote.episodeUntil) return api;
-      lastCall = sig;
-      mote.lastInput = clock;
-      fn(...args);
-      return api;
+      return withMoteRuntimeContext(context, () => {
+        const sig = name + "|" + args.map((a) => String(a)).join("|");
+        if (name !== "speaking" && sig === lastCall && clock < mote.episodeUntil) return api;
+        lastCall = sig;
+        mote.lastInput = clock;
+        fn(...args);
+        return api;
+      });
     };
   }
 
   /* Which state it was last put into, and whether that episode is still
      playing. Enough to drive a status line without tracking it yourself. */
-  api.state = () => ({
+  api.state = () => withMoteRuntimeContext(context, () => ({
     name: lastCall.split("|")[0] || null,
     playing: clock < mote.episodeUntil,
     awaitingTool: mote.awaitingTool === true,
-  });
+  }));
 
   /* Events straight from a model stream. See `embed/stream.js`. */
   const driver = makeStreamDriver(api);
@@ -281,9 +352,11 @@ function mountMote(host, opts = {}) {
     drawFrame(stage, clock, dt);
   }
 
-  api.setSkin(opts);
-  drawFrame(stage, clock, 0);
-  mounted = api;
+  withMoteRuntimeContext(context, () => {
+    mote.ambient = opts.ambient !== false;
+    api.setSkin(opts);
+    drawFrame(stage, clock, 0);
+  });
   if (!opts.manual) api.start();
   return api;
 }
@@ -310,7 +383,16 @@ function drawFrame(stage, t, dt) {
   const a = clamp(mote.arousal.x, 0, 1);
   const d = clamp(mote.dominance.x, -1, 1);
 
-  mote.gaze.step(t, dt, a, (amp) => blink(t, 0.1 + amp * 0.0022));
+  if (mote.ambient) {
+    mote.gaze.step(t, dt, a, (amp) => blink(t, 0.1 + amp * 0.0022));
+  } else {
+    /* Compact agent rows keep a living clock and state choreography, but hold
+       a centered gaze so five tiny creatures do not all scan the sidebar. */
+    mote.gaze.sac = null;
+    mote.gaze.yaw = 0; mote.gaze.pitch = 0;
+    mote.gaze.fixYaw = 0; mote.gaze.fixPitch = 0;
+    mote.gaze.tgtYaw = 0; mote.gaze.tgtPitch = 0;
+  }
 
   /* Spontaneous blinks: an alert creature blinks less, a drowsy one blinks
      slowly and often. */
@@ -344,6 +426,17 @@ function drawFrame(stage, t, dt) {
      answering it. Null means nothing is playing and nothing is still fading
      out, and the renderer can use the cached body path. */
   const pose = animPose(rest) || rest;
+  /* Compact agent rows keep their identity and status choreography, but they
+     must not repeatedly lean their eyes toward ambient attention targets. The
+     expression and animation channels can still change the face; this final
+     display gate makes the gaze direction itself stable in the row. The
+     compact eye pair is fixed as well: status is represented by the body and
+     its small episode marks, never by a face that jitters between expressions. */
+  const displayedGaze = mote.ambient ? pose.gaze : { yaw: 0, pitch: 0, roll: 0 };
+  const displayedSplit = mote.ambient ? pose.split : 16;
+  const displayedEyes = mote.ambient
+    ? pose.eyes
+    : [{ w: 0.21, h: 0.44, tilt: 0, open: 1 }, { w: 0.21, h: 0.44, tilt: 0, open: 1 }];
 
   drawStage(stage, {
     /* The cached path is only safe for a settled body: mid-morph the
@@ -352,8 +445,9 @@ function drawFrame(stage, t, dt) {
     sil: pose === rest && !bodyMorphing(mote) ? undefined : pose.sil,
     paint: mote.paint,
     x: gx * 7, y: gy * 5,
-    gaze: pose.gaze, split: pose.split, eyes: pose.eyes,
-    eyeAlpha: pose.eyeAlpha, blinkLid: lidClose,
+    gaze: displayedGaze, split: displayedSplit, eyes: displayedEyes,
+    eyeAlpha: mote.ambient ? pose.eyeAlpha : 1,
+    blinkLid: mote.ambient ? lidClose : 1,
     dots: pose.dots, arcs: pose.arcs, notif: pose.notif, dotsBehind: pose.dotsBehind,
   });
 

@@ -16,6 +16,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+/* ADR 0009: multi-instance lifecycle is verified through public handles. */
 import { dirname, join } from 'node:path'
 import vm from 'node:vm'
 
@@ -34,6 +35,7 @@ function makeNode(tag) {
       this.attrs[k] = String(v)
     },
     getAttribute(k) { return k in this.attrs ? this.attrs[k] : null },
+    getAttributeNames() { return Object.keys(this.attrs) },
     appendChild(n) {
       if (n.parentNode) n.parentNode.removeChild(n)
       n.parentNode = this
@@ -45,6 +47,24 @@ function makeNode(tag) {
       if (i >= 0) this.children.splice(i, 1)
       n.parentNode = null
       return n
+    },
+    cloneNode(deep = false) {
+      const copy = makeNode(tag)
+      copy.attrs = { ...this.attrs }
+      if (deep) for (const child of this.children) copy.appendChild(child.cloneNode(true))
+      return copy
+    },
+    querySelectorAll(selector) {
+      const out = []
+      const matches = (node) => selector === '*' || (selector === '[id]' && node.getAttribute('id') !== null)
+      const visit = (node) => {
+        for (const child of node.children) {
+          if (matches(child)) out.push(child)
+          visit(child)
+        }
+      }
+      visit(this)
+      return out
     },
     /* Depth-first, for assertions only. */
     all(out = []) {
@@ -99,6 +119,65 @@ test('it mounts, draws, and keeps drawing', async () => {
   assert.equal(rects.length, 2)
   for (const r of rects) assert.ok(Number(r.getAttribute('width')) > 0)
   assert.ok(first, 'body path went missing')
+  /* ADR 0008-snapshot-boundary */
+  const snapshotHost = makeNode('div')
+  avatar.snapshot(snapshotHost)
+  assert.equal(snapshotHost.firstChild.tagName, 'svg')
+  assert.ok(snapshotHost.firstChild.all().some((n) => n.tagName === 'path' && n.getAttribute('d')),
+    'snapshot did not copy the rendered Mote')
+  const variantHost = makeNode('div')
+  avatar.snapshot(variantHost, { body: 'triangle', paint: '#8b5cf6', name: 'Vela' })
+  const variantBody = variantHost.firstChild.all().find((n) => n.getAttribute('data-mote-body') === 'true')
+  assert.equal(variantBody.getAttribute('fill'), '#8b5cf6')
+  assert.equal(variantHost.firstChild.getAttribute('data-mote-name'), 'Vela')
+  assert.notEqual(variantBody.getAttribute('d'), body.getAttribute('d'), 'snapshot skin did not change its body')
+  avatar.destroy()
+})
+
+test('multiple mounted Motes keep independent lives and teardown', async () => {
+  const { Mote, host } = await mountInStub()
+  const secondHost = makeNode('div')
+  const first = Mote.mount(host, { manual: true, name: 'Ada', body: 'galet', paint: '#2c6ef5' })
+  const second = Mote.mount(secondHost, { manual: true, name: 'Bea', body: 'triangle', paint: '#8b5cf6' })
+
+  first.thinking()
+  second.tool('search')
+  run(first, 1.2)
+  run(second, 1.2)
+
+  assert.equal(host.children.length, 1)
+  assert.equal(secondHost.children.length, 1)
+  assert.equal(first.skin().name, 'Ada')
+  assert.equal(second.skin().name, 'Bea')
+  assert.equal(first.state().name, 'thinking')
+  assert.equal(second.state().name, 'tool')
+  assert.equal(second.state().awaitingTool, true)
+
+  first.destroy()
+  assert.equal(host.children.length, 0)
+  assert.equal(secondHost.children.length, 1, 'destroying one Mote removed another instance')
+  run(second, 1.2, 1200)
+  assert.equal(second.state().awaitingTool, true)
+  second.destroy()
+})
+
+test('compact mounted Motes keep a calm, fixed eye pair while status stays alive', async () => {
+  const { Mote, host } = await mountInStub()
+  const avatar = Mote.mount(host, { manual: true, ambient: false, name: 'Row' })
+  avatar.thinking()
+  run(avatar, 4)
+
+  const eyeRects = () => host.firstChild.all()
+    .filter((n) => n.tagName === 'rect' && n.getAttribute('rx') !== null)
+    .map((n) => ({
+      x: n.getAttribute('x'), y: n.getAttribute('y'),
+      width: n.getAttribute('width'), height: n.getAttribute('height'),
+      parent: n.parentNode?.getAttribute('transform'),
+    }))
+  const first = eyeRects()
+  run(avatar, 6, 4000)
+  assert.deepEqual(eyeRects(), first, 'compact eyes changed while the status episode was running')
+  assert.equal(avatar.state().name, 'thinking')
   avatar.destroy()
 })
 

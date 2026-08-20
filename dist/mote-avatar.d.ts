@@ -1,3 +1,4 @@
+/* ADR 0009: the public mount type permits independent handles. */
 /* Hand-written, and copied to dist/ by build.mjs.
 
    Hand-written because the sources are plain concatenated scripts with no
@@ -36,7 +37,14 @@ export interface MoteSkin {
 export interface MoteMountOptions extends MoteSkin {
   /** Don't start an internal requestAnimationFrame loop; call `tick` yourself. */
   manual?: boolean
+  /** Keep the instance alive but stop autonomous gaze and mood wandering. */
+  ambient?: boolean
   /** Mark the SVG `aria-hidden` — for previews and decorative copies. */
+  decorative?: boolean
+}
+
+export interface MoteSnapshotOptions extends MoteSkin {
+  /** Decorative snapshots are static copies and do not own an animation loop. */
   decorative?: boolean
 }
 
@@ -111,6 +119,10 @@ export interface MoteAvatar {
   // ── the creature directly ───────────────────────────────────────────────
   setSkin(skin: MoteSkin): MoteAvatar
   skin(): Required<MoteSkin>
+  /** Schedule work on this Mote's animation clock. */
+  after(seconds: number, fn: () => void): MoteAvatar
+  /** ADR 0008-snapshot-boundary: copy a rendered frame for a compact decorative surface. */
+  snapshot(host: Element, options?: MoteSnapshotOptions): MoteAvatar
   say(text: string, ms?: number): MoteAvatar
   look(mode?: MoteLook, seconds?: number): MoteAvatar
   /** Play one of the fourteen animations by id. */
@@ -146,12 +158,7 @@ export interface MoteTemperament {
 }
 
 export interface MoteStatic {
-  /**
-   * Mount a creature into an element.
-   *
-   * ONE PER PAGE — the creature's state is module-level, and mounting again
-   * destroys the previous one.
-   */
+  /** Mount an independent creature into an element. Multiple handles may coexist. */
   mount(host: Element, opts?: MoteMountOptions): MoteAvatar
   faces(): string[]
   states(): Array<{ id: MoteAnimation; label: string }>

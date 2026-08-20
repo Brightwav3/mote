@@ -44,7 +44,7 @@ function makeStage(host, opts = {}) {
   const arcsBack = add(wrap, "g");
   const dotsBack = add(wrap, "g");
   const bodyG = add(wrap, "g", { mask: `url(#${uid}-notch)` });
-  const body = add(bodyG, "path");
+  const body = add(bodyG, "path", { "data-mote-body": "true" });
   const eyes = [0, 1].map(() => {
     const outer = add(wrap, "g");
     const inner = add(outer, "g");

@@ -1,11 +1,18 @@
-const mote = {
+/* ADR 0009: mutable creature values are captured per public mount context. */
+let clock = 0;
+let pending = [];
+let epoch = 0;
+
+function makeMoteState() {
+  return {
   valence: new Spring(0.15, 11, 5.2),
   arousal: new Spring(0.53, 10, 5.0),
   dominance: new Spring(0.05, 10, 5.0),
   mood: new Mood(),
   restV: 0.15, restA: 0.53, restD: 0.05,
-  temper: temperamentFor("Mote"),
-  gaze: new Gaze(),
+    temper: temperamentFor("Mote"),
+    gaze: new Gaze(),
+    ambient: true,
 
   body: BODIES[0], paint: PAINTS[0][1], name: "Mote",
   bodyFrom: null, bodyAt: -9,   // a change of body morphs; see morphBody
@@ -13,13 +20,13 @@ const mote = {
   mode: "about", modeUntil: 0,
   place: 0, placeYaw: 0, placePitch: 0,
   glanceYaw: 0, glancePitch: 0, lastGlance: -9,
-  nextIdea: 7,
+  nextIdea: clock + 7,
 
-  blinkAt: -9, blinkDur: 0.16, nextBlink: 2,
+  blinkAt: -9, blinkDur: 0.16, nextBlink: clock + 2,
   speakUntil: -9, thinkUntil: -9,
   hold: null,
   episodeUntil: -9,
-  lastInput: 0,
+  lastInput: clock,
   cursor: { x: 0, y: 0, has: false },
   lastStim: "", lastStimAt: -99,
 
@@ -28,9 +35,10 @@ const mote = {
   /* Set by whoever mounts the creature; both default to nothing happening. */
   onSay: null,        // (text, ms) — it said something
   onFace: null,       // (faceId, settled) — the expression it settled into
-};
+  };
+}
 
-let clock = 0;
+let mote = makeMoteState();
 
 /* Put the creature back to its birth state. Every field the running animal
    accumulates is listed here on purpose: this is module-level state, so a
@@ -38,25 +46,7 @@ let clock = 0;
    unless it is cleared. ADR 0006:
    docs/decisions/0006-embeddable-agent-avatar.md */
 function resetMote() {
-  mote.valence = new Spring(0.15, 11, 5.2);
-  mote.arousal = new Spring(0.53, 10, 5.0);
-  mote.dominance = new Spring(0.05, 10, 5.0);
-  mote.mood = new Mood();
-  mote.gaze = new Gaze();
-  mote.restV = 0.15; mote.restA = 0.53; mote.restD = 0.05;
-  mote.mode = "about"; mote.modeUntil = 0;
-  mote.place = 0; mote.placeYaw = 0; mote.placePitch = 0;
-  mote.glanceYaw = 0; mote.glancePitch = 0; mote.lastGlance = -9;
-  mote.nextIdea = clock + 7;
-  mote.blinkAt = -9; mote.blinkDur = 0.16; mote.nextBlink = clock + 2;
-  mote.speakUntil = -9; mote.thinkUntil = -9;
-  mote.hold = null; mote.episodeUntil = -9;
-  mote.lastInput = clock;
-  mote.cursor = { x: 0, y: 0, has: false };
-  mote.lastStim = ""; mote.lastStimAt = -99;
-  mote.awaitingTool = false;
-  mote.bodyFrom = null; mote.bodyAt = -9;
-  mote.onSay = null; mote.onFace = null;
+  mote = makeMoteState();
   pending.length = 0;
   epoch++;
 }
@@ -73,8 +63,6 @@ const blink = (t, dur = 0.16) => { mote.blinkAt = t; mote.blinkDur = dur; };
 /* ADR 0004: creature behaviour is scheduled on the animation clock, never with
    setTimeout — a wall-clock timer fires against a frozen creature when the tab
    is hidden. docs/decisions/0004-scripted-episodes.md */
-const pending = [];
-let epoch = 0;
 const later = (delaySec, fn) => pending.push({ at: clock + delaySec, fn, epoch });
 function runPending() {
   for (let i = pending.length - 1; i >= 0; i--) {
@@ -295,6 +283,7 @@ function idea() {
 }
 
 function direct(t) {
+  if (!mote.ambient) return;
   const idle = t - mote.lastInput;
   const w = weather(t);
 

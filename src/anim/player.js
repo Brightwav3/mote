@@ -1,3 +1,4 @@
+/* ADR 0009: the animation player state is captured per public Mote handle. */
 /* ── PLAYING AN ANIMATION ─────────────────────────────────────────────────
    The catalogue in `states.js` is pure: a state is a function of local time.
    This is the part that owns a clock — which state is running, which one it is
@@ -40,14 +41,15 @@ const EXIT_MORPH = 0.38;
    had been playing, so every state begun from rest arrived in a single frame.
    Measured against the drawn silhouette, entering `thinking` from rest jumped
    154 px between two frames; the same entry now moves at most 4 px. */
-const anim = {
+const makeAnimState = () => ({
   cur: null,      // { def, t0, until } — what is playing
   prev: null,     // { def, t0 } — what it is crossfading from; def null = rest
   morphT0: 0,     // when the current crossfade began
   morphDur: 0.4,
   queue: [],
   rot: null,      // last blended rotation, for continuity — see mixPoses
-};
+});
+let anim = makeAnimState();
 
 /* Stopping is a crossfade back to ordinary life, not a cut. It used to be a
    cut, and since every scripted beat that named no animation called it, an
