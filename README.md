@@ -37,7 +37,12 @@ compact persona; see [ADR 0008](docs/decisions/0008-snapshot-boundary.md).
 Multiple live Motes can coexist. Each `Mote.mount(host, opts)` call owns its own
 mood, attention, episode queue, animation player and animation clock, so agent
 rows can each keep a living identity while a selected Mote occupies the main
-presence surface. Destroying one handle only clears its own host; see
+presence surface. Destroying one handle only clears its own host.
+
+The mechanism is that the library is built as a factory and `mount` calls it per
+handle, so a creature's state is a whole private copy of the module scope rather
+than something threaded through every function. You do not have to do anything
+to get this — `Mote.mount` is the only entry point you need; see
 [ADR 0009](docs/decisions/0009-multi-instance-agent-avatars.md).
 
 Compact agent rows may pass `ambient: false`. The instance still animates
@@ -106,9 +111,10 @@ exclamation mark — is skipped entirely under `prefers-reduced-motion`. The fac
 still changes, so every state stays legible.
 
 **Each mount is its own creature.** The implementation keeps the historical
-plain-script source layout, but every public handle gets an isolated runtime
-context. A page may therefore show several agents without sharing mood,
-attention, animation or tool-wait state.
+plain-script source layout; isolation comes from the build, which wraps those
+sources in a factory that `mount` calls once per handle. A page may therefore
+show several agents without sharing mood, attention, animation or tool-wait
+state.
 
 ## What it does
 

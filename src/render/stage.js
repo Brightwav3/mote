@@ -1,6 +1,24 @@
 const R = 92;
 const VIEWBOX = "-150 -150 300 300";
+
+/* SVG `id`s are resolved per DOCUMENT, not per script: two stages that both
+   call their mask `s1-notch` will silently resolve each other's definitions,
+   and the second creature ends up wearing the first one's notch.
+   A plain module counter is no longer enough to prevent that, because
+   ADR 0009 (docs/decisions/0009-multi-instance-agent-avatars.md) gives every
+   live Mote its own copy of this library and therefore its own counter, each
+   starting at zero. The counter that has to be unique is a
+   property of the PAGE, so it lives on the page. The local `stageSeq` is the
+   fallback for a host without a global object, where only one copy can exist
+   anyway. */
+const STAGE_SEQ_KEY = "__moteStageSeq";
 let stageSeq = 0;
+function nextStageUid() {
+  const scope = typeof globalThis === "undefined" ? null : globalThis;
+  if (!scope) return `s${++stageSeq}`;
+  scope[STAGE_SEQ_KEY] = (scope[STAGE_SEQ_KEY] || 0) + 1;
+  return `s${scope[STAGE_SEQ_KEY]}`;
+}
 
 /* One renderer, used for both the live creature and the little previews in
    the picker. A preview is just a frozen Mote, which is why the shape tiles
@@ -26,7 +44,7 @@ const add = (parent, tag, attrs) => { const n = svgEl(tag, attrs); parent.append
    are enough to run a real frame. ADR 0006:
    docs/decisions/0006-embeddable-agent-avatar.md */
 function makeStage(host, opts = {}) {
-  const uid = `s${++stageSeq}`;
+  const uid = nextStageUid();
   const svg = add(host, "svg", {
     viewBox: VIEWBOX,
     "aria-hidden": opts.decorative ? "true" : "false",

@@ -101,12 +101,22 @@ test('the library build exposes the API and keeps its internals in', async () =>
      Checked structurally, not by scanning for declarations. The sources are
      not indented, so every `const` in them looks top-level to a regex; what
      actually guarantees the scope is that nothing at all sits outside the
-     IIFE except the two export lines. */
-  const code = lib.slice(lib.indexOf('const MoteLib'))
-  const outside = code.split('})();')
-  assert.equal(outside.length, 2, 'the wrapper does not close exactly once')
-  assert.equal(outside[1].split(/\s+/).filter(Boolean).join(' '),
-    'export default MoteLib; export { MoteLib as Mote };')
+     factory except the facade and the export lines.
+
+     ADR 0009 (docs/decisions/0009-multi-instance-agent-avatars.md): the
+     wrapper is a FACTORY, and `mount` calls it once per handle,
+     which is where independent creatures come from. That line is pinned here
+     because it is the whole multi-instance contract — a build that closed over
+     one shared runtime would still pass every other test in this file. */
+  const code = lib.slice(lib.indexOf('const createMoteRuntime'))
+  const outside = code.split('  return Mote;\n};\n')
+  assert.equal(outside.length, 2, 'the factory does not close exactly once')
+  assert.equal(outside[1].replace(/\/\*[\s\S]*?\*\//g, '').split(/\s+/).filter(Boolean).join(' '),
+    'const shared = createMoteRuntime(); ' +
+    'const MoteLib = { mount: (host, opts) => createMoteRuntime().mount(host, opts), ' +
+    'faces: shared.faces, states: shared.states, bodies: shared.bodies, ' +
+    'palette: shared.palette, describe: shared.describe, }; ' +
+    'export default MoteLib; export { MoteLib as Mote }; export { createMoteRuntime };')
   /* And the demo must not be in it. */
   assert.ok(!lib.includes('getElementById("hatch")'), 'the maker page leaked into the library build')
   assert.ok(!lib.includes('id="acts"'), 'the demo deck leaked into the library build')

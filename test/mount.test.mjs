@@ -90,8 +90,21 @@ async function mountInStub() {
     cancelAnimationFrame: () => {},
   }
   vm.createContext(sandbox)
-  vm.runInContext(code + '\n;globalThis.__Mote = Mote;', sandbox)
-  return { Mote: sandbox.__Mote, host: makeNode('div') }
+  /* Mirror `build.mjs`: the sources are wrapped in a FACTORY, and the public
+     `mount` calls it once per handle so every creature gets a private copy of
+     the module scope. Evaluating the sources once and handing back that single
+     inner `Mote` would test a library nobody ships — and would quietly pass
+     even if multi-instance were broken.
+     ADR 0009: docs/decisions/0009-multi-instance-agent-avatars.md */
+  vm.runInContext(
+    'globalThis.__createMote = () => {\n' + code + '\n;return Mote;\n};',
+    sandbox)
+  const shared = sandbox.__createMote()
+  const Mote = {
+    ...shared,
+    mount: (host, opts) => sandbox.__createMote().mount(host, opts),
+  }
+  return { Mote, host: makeNode('div') }
 }
 
 /* 3.5 s of frames at 60fps, driven by hand — `manual: true` means the handle

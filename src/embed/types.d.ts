@@ -1,4 +1,5 @@
-/* ADR 0009: the public mount type permits independent handles. */
+/* ADR 0009: the public mount type permits independent handles.
+   docs/decisions/0009-multi-instance-agent-avatars.md */
 /* Hand-written, and copied to dist/ by build.mjs.
 
    Hand-written because the sources are plain concatenated scripts with no
@@ -171,3 +172,11 @@ export interface MoteStatic {
 declare const Mote: MoteStatic
 export default Mote
 export { Mote }
+
+/**
+ * A whole private copy of the library, for a host that wants to own the
+ * lifetime itself. You almost certainly do not need this: `Mote.mount` already
+ * calls it once per handle, which is what makes several live Motes possible.
+ * ADR 0009: docs/decisions/0009-multi-instance-agent-avatars.md
+ */
+export declare function createMoteRuntime(): MoteStatic
