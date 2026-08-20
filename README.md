@@ -141,6 +141,21 @@ a reflex blink locked to the large ones.
 reticle. It knows where you are and chooses when to look, and a glance is a
 fixation on where you *were*, not a follow.
 
+**Episodes can be written from outside.** The ten agent states are ten scripts
+of the same shape, and `avatar.episode(beats)` takes an eleventh — a list of
+`{ face, hold }` beats, optionally with an animation, a glance or a line to say
+on any of them. Scripts are checked whole before a single beat runs, including
+rejecting keys nobody defined, because a silently ignored `expression:` for
+`face:` is the failure mode worth spending code on. `mode: "loop"` and
+`mode: "pingpong"` repeat; a loop needs no cancelling, since the next
+deliberate act ends it.
+
+**A creature is portable.** `avatar.persona()` returns name, body, colour and
+named episodes as plain JSON, and `Mote.mount(host, persona)` puts the same
+animal back. Episodes in a persona are checked at mount, so a typo in a config
+file surfaces when the config loads rather than the first time a rare event
+fires.
+
 **The photoroom takes a still.** The *Photo* button holds the creature in one
 of the seventeen expressions and saves it as a square SVG. Nothing ticks while
 it is open — no blink, no gaze, no mood — because you cannot catch the frame

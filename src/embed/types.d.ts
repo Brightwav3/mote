@@ -35,7 +35,62 @@ export interface MoteSkin {
   name?: string
 }
 
+/** One beat of a written episode: a face, how long it is held, and
+ *  optionally what else happens on that beat. Unknown keys are rejected —
+ *  a typo is the failure this shape exists to catch. */
+export interface MoteBeat {
+  /** One of the seventeen; `Mote.faces()` lists them. */
+  face: string
+  /** Seconds, greater than 0 and at most 30. Covers exactly until the next
+   *  beat begins, so there is no gap to fall through. */
+  hold: number
+  /** Play one of the fourteen animations for this beat. A beat that names
+   *  none leaves a running animation alone rather than cutting it. */
+  anim?: MoteAnimation
+  /** Where its attention goes for this beat. */
+  look?: [MoteLook, number]
+  /** Something to say: text and how long to show it, in milliseconds. */
+  say?: [string, number]
+  /** Turn it inward for this many seconds. */
+  think?: number
+  blink?: boolean
+  /** Leave a mood residue. One event, one trace — the opening beat only. */
+  trace?: boolean
+  /** Names the stimulus, for habituation: the same kind twice running lands
+   *  softer. */
+  kind?: string
+}
+
+/** How a written episode repeats.
+ *
+ *  `pingpong` walks back out the way it came — `a b c b` — so the join is a
+ *  beat that was already there rather than a cut from the end to the start.
+ *  The endpoints are not repeated. */
+export type MoteEpisodeMode = 'once' | 'loop' | 'pingpong'
+
+export interface MoteEpisodeOptions {
+  /** Default `once`. */
+  mode?: MoteEpisodeMode
+  /** How many rounds — one pass of the whole cycle. Default is unbounded for
+   *  a repeating mode. A loop needs no cancelling: the next deliberate act
+   *  ends it. */
+  repeat?: number
+}
+
+/** An episode in a persona: bare beats for a one-shot, or beats plus how they
+ *  repeat. */
+export type MoteEpisode = MoteBeat[] | (MoteEpisodeOptions & { steps: MoteBeat[] })
+
+/** Everything that makes a creature that creature, as plain JSON.
+ *  `Mote.mount(host, avatar.persona())` produces the same animal. */
+export interface MotePersona extends MoteSkin {
+  episodes?: Record<string, MoteEpisode>
+}
+
 export interface MoteMountOptions extends MoteSkin {
+  /** Named scripts this creature carries, played by `episode(name)`. Checked
+   *  at mount, so a typo in a config file surfaces when it is loaded. */
+  episodes?: Record<string, MoteEpisode>
   /** Don't start an internal requestAnimationFrame loop; call `tick` yourself. */
   manual?: boolean
   /** Keep the instance alive but stop autonomous gaze and mood wandering. */
@@ -128,6 +183,17 @@ export interface MoteAvatar {
   look(mode?: MoteLook, seconds?: number): MoteAvatar
   /** Play one of the fourteen animations by id. */
   animate(id: MoteAnimation, hold?: number): MoteAvatar
+
+  // ── written episodes ────────────────────────────────────────────────────
+  /** Play a written script — the same beat vocabulary the built-in states
+   *  are made of. Pass beats directly, or the name of one carried in the
+   *  persona. Throws on a bad script, at the call, before anything plays. */
+  episode(steps: MoteBeat[], opts?: MoteEpisodeOptions): MoteAvatar
+  episode(name: string, opts?: MoteEpisodeOptions): MoteAvatar
+  /** The names of the episodes this creature carries. */
+  episodes(): string[]
+  /** This creature as plain JSON, ready to mount again. */
+  persona(): MotePersona
   animations(): Array<{ id: MoteAnimation; label: string }>
   bodies(): Array<{ id: MoteBody; label: string }>
   palette(): Array<{ label: string; hex: string }>

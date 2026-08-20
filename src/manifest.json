@@ -13,6 +13,7 @@
   "creature/temperament.js",
   "creature/mote.js",
   "anim/player.js",
+  "creature/episodes.js",
   "embed/stream.js",
   "embed/agent.js",
   "app/loop.js",

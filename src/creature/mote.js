@@ -26,6 +26,10 @@ function makeMoteState() {
   speakUntil: -9, thinkUntil: -9,
   hold: null,
   episodeUntil: -9,
+  /* Named scripts carried by the persona, and the play settings each was
+     declared with. See src/creature/episodes.js. */
+  episodes: {},
+  episodeOpts: {},
   lastInput: clock,
   cursor: { x: 0, y: 0, has: false },
   lastStim: "", lastStimAt: -99,

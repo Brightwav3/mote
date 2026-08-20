@@ -1923,6 +1923,10 @@ function makeMoteState() {
   speakUntil: -9, thinkUntil: -9,
   hold: null,
   episodeUntil: -9,
+  /* Named scripts carried by the persona, and the play settings each was
+     declared with. See src/creature/episodes.js. */
+  episodes: {},
+  episodeOpts: {},
   lastInput: clock,
   cursor: { x: 0, y: 0, has: false },
   lastStim: "", lastStimAt: -99,
@@ -2484,6 +2488,146 @@ function maybeIdleAnim(t) {
   for (const [w, id] of IDLE_ANIMS) if ((r -= w) <= 0) return playAnim(id);
 }
 
+/* ── EPISODES AS DATA ─────────────────────────────────────────────────────
+   `play()` already takes a written script — a list of `{ face, hold, ... }`
+   beats — and ADR 0004 makes that list the specification of a reaction. What
+   it did not have was a way in from outside. Every script in the project is a
+   JS literal inside `embed/agent.js`, which is fine for the ten states an
+   agent's turn goes through and useless to anybody who wants an eleventh.
+
+   Two things are needed to hand that list to an integrator, and neither is
+   the list itself.
+
+   The first is VALIDATION. `play()` trusts what it is given because
+   everything it is given was written three lines away by someone who could
+   see `FACES`. A script arriving as JSON from a config file, an API or a
+   person is a different proposition: `{ expression: "happy" }` instead of
+   `{ face: "happy" }` would silently play a beat with no face and an
+   undefined hold, and the creature would sit there wrong with nothing in the
+   console. So a script is checked completely, up front, before a single beat
+   runs, and a bad one throws at the call rather than misbehaving later. That
+   includes rejecting keys nobody defined — a typo is the failure being
+   guarded against, and ignoring unknown keys is how a typo stays silent.
+
+   The second is REPETITION. A written script runs once, which is right for a
+   reaction to an event. An episode carried in a persona is often not a
+   reaction — an idle loop, a two-beat breathing pattern, a waiting animation
+   — and those want to keep going until something interrupts.
+
+   The interruption is free, and it is worth saying why, because it is the
+   whole reason a loop is safe here. `play()` bumps the epoch, and `later()`
+   stamps every job with the epoch current when it was scheduled; `runPending`
+   discards a job whose stamp has gone stale. So a loop re-arms itself AFTER
+   its own `play()` — capturing the fresh epoch — and any deliberate act
+   afterwards bumps the epoch again and the loop simply stops existing. No
+   cancellation token, no handle to leak, and no way for a forgotten loop to
+   fight with a reaction. ADR 0004:
+   docs/decisions/0004-scripted-episodes.md */
+
+/* `pingpong` is the mode a written sequence usually wants when it loops. A
+   plain loop of `a b c` cuts from c straight back to a; ping-pong walks back
+   out the way it came, `a b c b`, so the join is a beat that was already
+   there. The endpoints are not repeated — `a b c b a b c b` — because holding
+   c or a for two beats running is the stutter the mode exists to avoid. */
+function pingpongOrder(steps) {
+  if (steps.length < 3) return steps.slice();
+  return steps.concat(steps.slice(1, -1).reverse());
+}
+
+const EPISODE_MODES = ["once", "loop", "pingpong"];
+const EPISODE_MAX_STEPS = 64;
+const EPISODE_MAX_HOLD = 30;
+
+/* Every key a beat may carry, with a check for each. `play()` reads exactly
+   these; anything else in the object is a mistake, not an extension. */
+const EPISODE_STEP_KEYS = {
+  face: (v) => (FACE_AT[v] ? null : `unknown face ${JSON.stringify(v)}`),
+  hold: (v) => (typeof v === "number" && v > 0 && v <= EPISODE_MAX_HOLD
+    ? null : `hold must be a number in (0, ${EPISODE_MAX_HOLD}]`),
+  anim: (v) => (STATE_BY_ID[v] ? null : `unknown animation ${JSON.stringify(v)}`),
+  look: (v) => (Array.isArray(v) && LOOK_MODES.includes(v[0]) && typeof v[1] === "number"
+    ? null : `look must be [${LOOK_MODES.join("|")}, seconds]`),
+  say: (v) => (Array.isArray(v) && typeof v[0] === "string" && typeof v[1] === "number"
+    ? null : "say must be [text, milliseconds]"),
+  think: (v) => (typeof v === "number" && v > 0 ? null : "think must be a positive number"),
+  blink: (v) => (typeof v === "boolean" ? null : "blink must be a boolean"),
+  trace: (v) => (typeof v === "boolean" ? null : "trace must be a boolean"),
+  kind: (v) => (typeof v === "string" ? null : "kind must be a string"),
+};
+
+/* The four attention modes `look()` understands. Naming a fifth does not
+   error inside `look` — it just parks the creature in a mode nothing steers,
+   which is the sort of quiet wrongness this file exists to prevent. */
+const LOOK_MODES = ["about", "viewer", "away", "inward"];
+
+const episodeFail = (msg) => { throw new Error(`mote: ${msg}`); };
+
+/* Checked whole, before anything plays. A script that is half valid must not
+   run its valid half — an integrator seeing three of five beats would go
+   looking for the bug in the wrong place entirely. */
+function checkEpisode(steps) {
+  if (!Array.isArray(steps) || steps.length === 0) {
+    episodeFail("an episode is a non-empty array of beats");
+  }
+  if (steps.length > EPISODE_MAX_STEPS) {
+    episodeFail(`an episode may have at most ${EPISODE_MAX_STEPS} beats`);
+  }
+  steps.forEach((step, i) => {
+    const at = `beat ${i}`;
+    if (!step || typeof step !== "object" || Array.isArray(step)) {
+      episodeFail(`${at}: a beat is an object`);
+    }
+    /* Unknown keys first. `{ expression: "happy", hold: 1 }` is missing a
+       face AND carries a key nobody defined, and of those two facts only the
+       second tells the reader what they actually typed wrong. */
+    for (const key of Object.keys(step)) {
+      const check = EPISODE_STEP_KEYS[key];
+      if (!check) {
+        episodeFail(`${at}: unknown key ${JSON.stringify(key)} — expected one of `
+          + Object.keys(EPISODE_STEP_KEYS).join(", "));
+      }
+      if (step[key] === undefined) continue;   // an omitted optional
+      const why = check(step[key]);
+      if (why) episodeFail(`${at}.${key}: ${why}`);
+    }
+    if (!("face" in step)) episodeFail(`${at}: a beat needs a face`);
+    if (!("hold" in step)) episodeFail(`${at}: a beat needs a hold`);
+  });
+  return steps;
+}
+
+const episodeLength = (steps) => steps.reduce((sum, st) => sum + st.hold, 0);
+
+/* Play a checked script, optionally over and over.
+
+   `repeat` counts ROUNDS, so 1 is indistinguishable from "once" and Infinity
+   is the default for a mode that repeats at all. A round is one pass of the
+   whole cycle — for ping-pong that is out and back, not out. */
+function playEpisode(steps, opts = {}) {
+  checkEpisode(steps);
+  const mode = opts.mode === undefined ? "once" : opts.mode;
+  if (!EPISODE_MODES.includes(mode)) {
+    episodeFail(`unknown mode ${JSON.stringify(mode)} — expected one of ${EPISODE_MODES.join(", ")}`);
+  }
+  const repeat = opts.repeat === undefined ? Infinity : opts.repeat;
+  if (!(repeat >= 1)) episodeFail("repeat must be at least 1");
+
+  const cycle = mode === "pingpong" ? pingpongOrder(steps) : steps;
+  const span = episodeLength(cycle);
+  let rounds = mode === "once" ? 1 : repeat;
+
+  const round = () => {
+    play(cycle);
+    /* Scheduled AFTER `play()`, so it carries the epoch `play()` just bumped
+       to and survives its own restart. Anything else calling `play()` — a
+       reaction, another episode, `idle()` — bumps past it and the loop ends
+       without being told to. */
+    if (--rounds > 0) later(span, round);
+  };
+  round();
+  return span;
+}
+
 /* ── DRIVING IT FROM A REAL STREAM ────────────────────────────────────────
    The agent surface is a set of states; a model stream is a sequence of
    events. This translates one into the other, so an integration is
@@ -2855,6 +2999,44 @@ function mountMote(host, opts = {}) {
     after(seconds, fn) { later(seconds, fn); return api; },
     say(text, ms = 1800) { say(text, ms); return api; },
 
+    /* ── written episodes ───────────────────────────────────────────────
+       The ten states above are ten scripts, and an integrator who wants an
+       eleventh has, until now, had no way to write one. This is that way:
+       the same beat vocabulary `play()` has always taken, checked before a
+       single beat runs, optionally over and over.
+
+       Naming one from the persona instead of passing an array is the point of
+       carrying episodes in a persona at all — the sequence lives in the
+       config, and the calling code says only which event happened. */
+    episode(nameOrSteps, opts) {
+      const steps = typeof nameOrSteps === "string"
+        ? mote.episodes[nameOrSteps]
+        : nameOrSteps;
+      if (!steps) {
+        throw new Error(`mote: no episode named ${JSON.stringify(nameOrSteps)}`);
+      }
+      /* A persona episode carries its own mode; an explicit one at the call
+         site wins, so a looping idle can be played once for a preview. */
+      const settings = typeof nameOrSteps === "string"
+        ? { ...mote.episodeOpts[nameOrSteps], ...opts }
+        : opts;
+      playEpisode(steps, settings);
+      return api;
+    },
+    episodes: () => Object.keys(mote.episodes),
+
+    /* Everything that makes this creature this creature, as plain JSON. The
+       round trip is the contract: `Mote.mount(host, avatar.persona())` must
+       produce the same animal. */
+    persona: () => ({
+      name: mote.name, body: mote.body.id, paint: mote.paint,
+      episodes: Object.fromEntries(Object.entries(mote.episodes).map(([k, steps]) => {
+        const settings = mote.episodeOpts[k];
+        return [k, settings && settings.mode && settings.mode !== "once"
+          ? { steps, ...settings } : steps];
+      })),
+    }),
+
     /* One of the fourteen, by id, for anyone who wants the vocabulary
        directly. */
     animate(id, hold) { playAnim(id, hold); return api; },
@@ -2961,6 +3143,24 @@ function mountMote(host, opts = {}) {
   }
 
   mote.ambient = opts.ambient !== false;
+  /* Checked at MOUNT, not at first play. A persona is usually a config file,
+     and a typo in one should surface when the config is loaded rather than
+     the first time some rare event fires in front of a user. */
+  if (opts.episodes) {
+    for (const [name, entry] of Object.entries(opts.episodes)) {
+      const steps = Array.isArray(entry) ? entry : entry && entry.steps;
+      try {
+        checkEpisode(steps);
+      } catch (e) {
+        throw new Error(`mote: episode ${JSON.stringify(name)}: ${e.message.replace(/^mote: /, "")}`);
+      }
+      mote.episodes[name] = steps;
+      if (!Array.isArray(entry)) {
+        const { steps: _drop, ...settings } = entry;
+        mote.episodeOpts[name] = settings;
+      }
+    }
+  }
   api.setSkin(opts);
   drawFrame(stage, clock, 0);
   if (!opts.manual) api.start();

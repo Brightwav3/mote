@@ -226,6 +226,44 @@ function mountMote(host, opts = {}) {
     after(seconds, fn) { later(seconds, fn); return api; },
     say(text, ms = 1800) { say(text, ms); return api; },
 
+    /* ── written episodes ───────────────────────────────────────────────
+       The ten states above are ten scripts, and an integrator who wants an
+       eleventh has, until now, had no way to write one. This is that way:
+       the same beat vocabulary `play()` has always taken, checked before a
+       single beat runs, optionally over and over.
+
+       Naming one from the persona instead of passing an array is the point of
+       carrying episodes in a persona at all — the sequence lives in the
+       config, and the calling code says only which event happened. */
+    episode(nameOrSteps, opts) {
+      const steps = typeof nameOrSteps === "string"
+        ? mote.episodes[nameOrSteps]
+        : nameOrSteps;
+      if (!steps) {
+        throw new Error(`mote: no episode named ${JSON.stringify(nameOrSteps)}`);
+      }
+      /* A persona episode carries its own mode; an explicit one at the call
+         site wins, so a looping idle can be played once for a preview. */
+      const settings = typeof nameOrSteps === "string"
+        ? { ...mote.episodeOpts[nameOrSteps], ...opts }
+        : opts;
+      playEpisode(steps, settings);
+      return api;
+    },
+    episodes: () => Object.keys(mote.episodes),
+
+    /* Everything that makes this creature this creature, as plain JSON. The
+       round trip is the contract: `Mote.mount(host, avatar.persona())` must
+       produce the same animal. */
+    persona: () => ({
+      name: mote.name, body: mote.body.id, paint: mote.paint,
+      episodes: Object.fromEntries(Object.entries(mote.episodes).map(([k, steps]) => {
+        const settings = mote.episodeOpts[k];
+        return [k, settings && settings.mode && settings.mode !== "once"
+          ? { steps, ...settings } : steps];
+      })),
+    }),
+
     /* One of the fourteen, by id, for anyone who wants the vocabulary
        directly. */
     animate(id, hold) { playAnim(id, hold); return api; },
@@ -332,6 +370,24 @@ function mountMote(host, opts = {}) {
   }
 
   mote.ambient = opts.ambient !== false;
+  /* Checked at MOUNT, not at first play. A persona is usually a config file,
+     and a typo in one should surface when the config is loaded rather than
+     the first time some rare event fires in front of a user. */
+  if (opts.episodes) {
+    for (const [name, entry] of Object.entries(opts.episodes)) {
+      const steps = Array.isArray(entry) ? entry : entry && entry.steps;
+      try {
+        checkEpisode(steps);
+      } catch (e) {
+        throw new Error(`mote: episode ${JSON.stringify(name)}: ${e.message.replace(/^mote: /, "")}`);
+      }
+      mote.episodes[name] = steps;
+      if (!Array.isArray(entry)) {
+        const { steps: _drop, ...settings } = entry;
+        mote.episodeOpts[name] = settings;
+      }
+    }
+  }
   api.setSkin(opts);
   drawFrame(stage, clock, 0);
   if (!opts.manual) api.start();
