@@ -142,14 +142,22 @@ function drawStage(st, pose) {
      expression's own measured head pose, mixed with wherever attention is
      pointing. Rendering decides nothing about where he looks. */
   const frames = eyeFrames(pose.gaze.yaw, pose.gaze.pitch, pose.gaze.roll, pose.split, R);
+  /* The pair is shrunk toward the centre if it would otherwise reach outside
+     the silhouette it is drawn on — on a circle this is exactly 1 and changes
+     nothing. ADR 0010: see src/faces/fitting.js for why it is solved rather
+     than authored.
+     docs/decisions/0010-eye-containment-solved-not-authored.md */
+  const fit = eyeFitFor(pose.sil ? pose.sil.radii : pose.body.profile,
+                        frames, pose.eyes, R);
   const ink = eyeInkFor(pose.paint);
   const alpha = pose.eyeAlpha === undefined ? 1 : pose.eyeAlpha;
   frames.forEach((p, i) => {
     const n = st.eyes[i];
     const e = pose.eyes[i];
-    const w = e.w * R, h = e.h * R;
+    const w = e.w * R * fit, h = e.h * R * fit;
     const lidScale = 0.06 + 0.94 * clamp(e.open * pose.blinkLid);
-    n.outer.setAttribute("transform", `translate(${r2(p.x)},${r2(p.y)}) scale(1,${r2(lidScale)})`);
+    n.outer.setAttribute("transform",
+      `translate(${r2(p.x * fit)},${r2(p.y * fit)}) scale(1,${r2(lidScale)})`);
     n.inner.setAttribute("transform",
       `matrix(${r2(p.a)},${r2(p.b)},${r2(p.c)},${r2(p.d)},0,0) rotate(${r2(e.tilt)})`);
     n.rect.setAttribute("x", r2(-w / 2)); n.rect.setAttribute("y", r2(-h / 2));

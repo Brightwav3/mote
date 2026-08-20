@@ -6,6 +6,7 @@
   "creature/gaze.js",
   "bodies/shapes.js",
   "bodies/palette.js",
+  "faces/fitting.js",
   "anim/decor.js",
   "anim/states.js",
   "render/stage.js",
