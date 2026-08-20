@@ -132,6 +132,58 @@ button { font: inherit; color: inherit; }
 .go:active { transform: translateY(0); }
 .go:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
 
+/* ══ the photoroom ═══════════════════════════════════════════════════════
+   A still portrait, for taking away as a file. Nothing in here animates —
+   see src/app/photoroom.js. */
+#photo {
+  flex-direction: column; align-items: center; justify-content: center;
+  padding: 40px 24px 56px; gap: 22px;
+}
+#photo h1 { margin: 0; font-size: clamp(26px, 5vw, 38px); text-align: center; }
+#photo-preview {
+  width: min(300px, 62vw); aspect-ratio: 1;
+  display: grid; place-items: center;
+  border: 1.5px solid var(--line); border-radius: 18px;
+  /* The chequer says "this is transparent", which is what the file is. */
+  background-image:
+    linear-gradient(45deg, var(--sunk) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--sunk) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--sunk) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--sunk) 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+}
+#photo-preview svg { width: 100%; height: 100%; display: block; }
+#photo-face-name {
+  margin: 0; color: var(--mut); font-size: 14.5px; min-height: 1.5em;
+}
+.faces { width: min(560px, 100%); }
+.photo-take { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
+.alt {
+  padding: 12px 24px; border-radius: 999px; cursor: pointer;
+  background: transparent; border: 1.5px solid var(--line); color: var(--mut);
+  font-size: 15px;
+  transition: border-color .14s ease, color .14s ease;
+}
+.alt:hover { border-color: var(--focus); color: var(--fg); }
+.alt:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+#photo-out {
+  width: min(560px, 100%); height: 108px; resize: vertical;
+  padding: 10px 12px; border-radius: 11px;
+  background: var(--sunk); color: var(--mut);
+  border: 1.5px solid var(--line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+  line-height: 1.45; white-space: pre; overflow-wrap: normal;
+}
+#photo-out[hidden] { display: none; }
+#photo-out:focus { outline: none; border-color: var(--focus); }
+.faces h2 {
+  margin: 0 0 9px; font-size: 12px; font-weight: 500; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--faint); text-align: center;
+}
+.faces .tiles { grid-template-columns: repeat(9, 1fr); }
+@media (max-width: 520px) { .faces .tiles { grid-template-columns: repeat(5, 1fr); } }
+
 /* ══ the living page ═════════════════════════════════════════════════════ */
 #live { flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 32px 20px 40px; }
 #field { width: min(560px, 88vw); aspect-ratio: 1; touch-action: none; }
@@ -178,6 +230,8 @@ button { font: inherit; color: inherit; }
 }
 .change:hover { border-color: var(--focus); color: var(--fg); }
 .change:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+/* Two of them share the corner; the second one sits inboard of the first. */
+#photo-open { right: 116px; }
 
 .back {
   background: none; border: none; cursor: pointer; padding: 4px;
@@ -221,6 +275,7 @@ button { font: inherit; color: inherit; }
 
 <!-- ══ 2 · live with it ══════════════════════════════════════════════════ -->
 <section class="view" id="live">
+  <button class="change" id="photo-open" type="button">Photo</button>
   <button class="change" id="change" type="button">Change</button>
   <div id="field"></div>
   <h1 class="serif" id="given">Mote</h1>
@@ -233,3 +288,24 @@ button { font: inherit; color: inherit; }
   </details>
 </section>
 
+<!-- ══ 3 · take its picture ══════════════════════════════════════════════ -->
+<section class="view" id="photo">
+  <p class="step-label">Hold still</p>
+  <h1 class="serif">Photoroom</h1>
+
+  <div id="photo-preview"></div>
+  <p id="photo-face-name"></p>
+
+  <div class="faces">
+    <h2>Expression</h2>
+    <div class="tiles" id="photo-faces"></div>
+  </div>
+
+  <div class="photo-take">
+    <button class="go" id="photo-save" type="button">Save as SVG</button>
+    <button class="alt" id="photo-copy" type="button">Copy the markup</button>
+  </div>
+  <textarea id="photo-out" readonly spellcheck="false" hidden
+            aria-label="The SVG markup, to copy"></textarea>
+  <button class="back" id="photo-back" type="button">Back to it</button>
+</section>

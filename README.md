@@ -141,6 +141,13 @@ a reflex blink locked to the large ones.
 reticle. It knows where you are and chooses when to look, and a glance is a
 fixation on where you *were*, not a follow.
 
+**The photoroom takes a still.** The *Photo* button holds the creature in one
+of the seventeen expressions and saves it as a square SVG. Nothing ticks while
+it is open — no blink, no gaze, no mood — because you cannot catch the frame
+you wanted by pressing a button at the right instant. The file is the exact
+frame on screen, transparent, on the same square viewBox the live creature
+uses, so it drops in as an icon or an avatar.
+
 ## Layout
 
 ```

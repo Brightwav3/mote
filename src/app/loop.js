@@ -27,6 +27,10 @@ avatar.onFace((id, settled, line) => {
    creature once it exists. The avatar was mounted `manual` for exactly this —
    an embedder who has no second thing to draw just lets it run its own. */
 function frame(now) {
+  /* The photoroom is a still: neither the preview nor the creature is
+     advanced while it is open, so the pose on screen is exactly the pose that
+     saves. See src/app/photoroom.js. */
+  if (photoView.classList.contains("on")) { requestAnimationFrame(frame); return; }
   if (makeView.classList.contains("on")) drawPreview(now / 1000);
   else {
     avatar.tick(now);

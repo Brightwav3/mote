@@ -16,5 +16,6 @@
   "embed/agent.js",
   "app/loop.js",
   "app/acts.js",
-  "app/maker.js"
+  "app/maker.js",
+  "app/photoroom.js"
 ]
