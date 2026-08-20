@@ -28,6 +28,21 @@ const ACTS = [
   ["Ship the big one", () => avatar.shipped()],
   ["Leave it be", () => avatar.asleep()],
 ];
+/* One act that is NOT a built-in state. The other ten prove the states work;
+   this one proves an integrator can write an eleventh without us — it is a
+   plain list of beats handed to `avatar.episode`, in the same vocabulary the
+   ten above are made of, and the page knows nothing else about it.
+
+   That distinction is the point of the demo (ADR 0006): a surface that only
+   ever calls its own built-ins cannot tell you whether the door is open. */
+const GREETING = [
+  { face: "surprised", hold: 0.7, kind: "hello", blink: true },
+  { face: "happy", hold: 1.2, trace: true, look: ["viewer", 1.4],
+    say: ["oh — hello.", 1600] },
+  { face: "attentive", hold: 1.4 },
+];
+ACTS.push(["Say hello (written)", () => avatar.episode(GREETING)]);
+
 const acts = document.getElementById("acts");
 ACTS.forEach(([label, fn]) => {
   const b = document.createElement("button");
@@ -54,3 +69,32 @@ const allBtn = document.createElement("button");
 allBtn.type = "button"; allBtn.textContent = "Play them all";
 allBtn.addEventListener("click", () => playAnimSequence());
 animsEl.appendChild(allBtn);
+
+/* ── the creature as JSON ─────────────────────────────────────────────────
+   `persona()` is the round trip made visible: what this panel shows is
+   exactly what `Mote.mount` accepts. It is refreshed on open rather than
+   every frame, because a persona only changes when you change the creature,
+   and re-serialising it sixty times a second to sit unread in a folded panel
+   would be a waste of the only budget this page has. */
+const personaOut = document.getElementById("persona-out");
+const personaPanel = personaOut.closest("details");
+const personaCopy = document.getElementById("persona-copy");
+
+const refreshPersona = () => {
+  personaOut.value = JSON.stringify(avatar.persona(), null, 2);
+  personaCopy.textContent = "Copy it";
+};
+personaPanel.addEventListener("toggle", () => { if (personaPanel.open) refreshPersona(); });
+
+/* Embedded, the clipboard may be refused without throwing anywhere we can
+   see, so selecting the text is the fallback that always works — the same
+   bargain the photoroom makes. */
+personaCopy.addEventListener("click", () => {
+  const text = personaOut.value;
+  const fall = () => { personaOut.focus(); personaOut.select(); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => { personaCopy.textContent = "Copied"; }, fall);
+  } else {
+    fall();
+  }
+});
