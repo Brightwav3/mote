@@ -12,6 +12,7 @@ import { dirname, join } from 'node:path'
    docs/decisions/0006-embeddable-agent-avatar.md */
 const root = dirname(fileURLToPath(import.meta.url))
 const src = (p) => join(root, 'src', p)
+const demo = (p) => join(root, 'demos', p)
 
 const manifest = JSON.parse(await readFile(src('manifest.json'), 'utf8'))
 const parts = await Promise.all(manifest.map((p) => readFile(src(p), 'utf8')))
@@ -82,3 +83,9 @@ await writeFile(join(root, 'dist', 'mote-avatar.js'), lib, 'utf8')
 await writeFile(join(root, 'dist', 'mote-avatar.d.ts'),
   await readFile(src(join('embed', 'types.d.ts')), 'utf8'), 'utf8')
 console.log(`built dist/mote-avatar.js — ${core.length} modules, ${(lib.length / 1024).toFixed(1)} KB, + types`)
+
+/* A second, integration-shaped demo. It consumes the generated public module
+   exactly like a host application, so its workflow cannot reach internals. */
+const actionsDemo = await readFile(demo('github-actions.html'), 'utf8')
+await writeFile(join(root, 'dist', 'github-actions.html'), actionsDemo, 'utf8')
+console.log(`built dist/github-actions.html — scripted agent workflow demo`)

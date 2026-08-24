@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mote · Agent workflow</title>
+  <script>document.documentElement.dataset.theme=localStorage.getItem('mote-theme')||((matchMedia('(prefers-color-scheme:dark)').matches)?'dark':'light')</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;800&family=IBM+Plex+Sans:wght@400;500&display=swap">
+  <style>
+    :root{color-scheme:dark;--bg:#0d1117;--panel:#161b22;--panel-2:#1c2128;--line:#30363d;--soft:#8b949e;--text:#f0f6fc;--green:#3fb950;--blue:#58a6ff;--red:#f85149;--amber:#d29922;--shadow:0 24px 80px rgba(0,0,0,.34)}
+    *{box-sizing:border-box}html,body{min-height:100%;margin:0}body{background:radial-gradient(circle at 50% -20%,#1f2937 0,transparent 38%),var(--bg);color:var(--text);font:14px/1.5 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}button,input{font:inherit}button{color:inherit}.app{width:min(1120px,calc(100% - 32px));margin:0 auto;padding:24px 0 52px}.topbar{height:54px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);margin-bottom:32px}.mark{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--text);color:var(--bg)}.mark svg{width:18px}.brand{font-weight:650;letter-spacing:-.01em}.slash{color:#484f58}.repo{color:#c9d1d9}.live{margin-left:auto;display:flex;align-items:center;gap:7px;color:var(--soft);font-size:12px}.live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px rgba(63,185,80,.12)}
+    .screen{display:none}.screen.active{display:block}.builder-head{max-width:620px;margin:58px auto 30px;text-align:center}.eyebrow{color:var(--green);font:600 12px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.09em;text-transform:uppercase}.builder-head h1{font-size:clamp(34px,5vw,54px);line-height:1.02;letter-spacing:-.045em;margin:14px 0}.builder-head p{color:var(--soft);font-size:16px;margin:0 auto;max-width:510px}.builder-grid{display:grid;grid-template-columns:minmax(300px,1fr) minmax(340px,1.25fr);border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow)}.preview{min-height:510px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:44px;background:radial-gradient(circle at 50% 42%,#263142 0,transparent 48%),#10151c;border-right:1px solid var(--line)}#maker-mote{width:min(320px,100%);aspect-ratio:1}.preview-name{font-size:20px;font-weight:650;margin-top:8px}.temperament{color:var(--soft);text-align:center;min-height:42px;margin-top:4px}.form{padding:36px}.field{border:0;padding:0;margin:0 0 28px}.label,.field legend{display:block;padding:0;margin:0 0 10px;font-size:13px;font-weight:600}.name-input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--text);border-radius:8px;padding:11px 12px;outline:none}.name-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(88,166,255,.14)}.body-list{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.body-option{position:relative;aspect-ratio:1;border:1px solid var(--line);border-radius:9px;background:#0d1117;cursor:pointer;padding:5px;transition:border-color .15s,background .15s,transform .15s}.body-option:hover{background:#21262d;transform:translateY(-1px)}.body-option.selected{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue)}.body-host{width:100%;height:100%;pointer-events:none}.swatches{display:flex;gap:10px;flex-wrap:wrap}.swatch{width:30px;height:30px;border-radius:50%;border:0;background:var(--paint);cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15);transition:transform .15s}.swatch:hover{transform:scale(1.09)}.swatch.selected{outline:2px solid var(--text);outline-offset:3px}.continue{width:100%;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:#238636;padding:11px 16px;font-weight:650;cursor:pointer;transition:background .15s}.continue:hover{background:#2ea043}.continue:focus-visible,.body-option:focus-visible,.swatch:focus-visible,.icon-button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+    .workflow{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel);box-shadow:var(--shadow)}.workflow-head{height:60px;display:flex;align-items:center;padding:0 18px;gap:12px;border-bottom:1px solid var(--line)}.workflow-head strong{font-size:14px}.branch{color:var(--soft);font:12px ui-monospace,SFMono-Regular,Consolas,monospace}.head-actions{margin-left:auto;display:flex;align-items:center;gap:10px}.run-badge{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:5px 10px;color:var(--soft);font-size:12px}.run-badge i{width:7px;height:7px;border-radius:50%;background:var(--soft)}.run-badge.running i{background:var(--amber);animation:pulse 1s ease-in-out infinite}.run-badge.success i{background:var(--green)}.icon-button{width:32px;height:32px;border-radius:7px;border:1px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center}.icon-button:hover{background:var(--panel-2)}.workflow-body{display:grid;grid-template-columns:270px 1fr;min-height:610px}.rail{padding:18px 12px;border-right:1px solid var(--line);background:#12171e}.rail-title{padding:0 8px 12px;color:var(--soft);font-size:12px}.steps{display:flex;flex-direction:column;gap:3px}.step{display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:center;padding:9px 8px;border-radius:7px;color:var(--soft);font-size:13px}.step.active{background:#1f2731;color:var(--text)}.step.done{color:#c9d1d9}.status-icon{width:17px;height:17px;border:1px solid #484f58;border-radius:50%;display:grid;place-items:center;font-size:10px}.step.done .status-icon{border-color:var(--green);background:var(--green);color:#07120a}.step.active .status-icon{border:2px solid var(--amber);border-top-color:transparent;animation:spin .8s linear infinite}.step.fail .status-icon{background:var(--red);border-color:var(--red);color:white}.agent-card{margin-top:22px;border-top:1px solid var(--line);padding:18px 8px 0}.mini-mote{width:110px;height:110px;margin:0 auto}.agent-name{text-align:center;font-weight:600}.agent-state{text-align:center;color:var(--soft);font-size:12px;margin-top:3px}.main{padding:26px 30px 32px;min-width:0}.prompt{display:grid;grid-template-columns:28px 1fr;gap:11px;padding:14px 16px;border:1px solid var(--line);border-radius:9px;background:#0d1117;margin-bottom:22px;opacity:0;transform:translateY(6px);transition:.28s ease}.prompt.visible{opacity:1;transform:none}.prompt-avatar{width:26px;height:26px;border-radius:6px;background:#30363d;display:grid;place-items:center;font-size:11px;font-weight:700}.prompt small{display:block;color:var(--soft);margin-bottom:3px}.prompt p{margin:0;color:#d8dee4}.job-title{display:flex;align-items:center;gap:10px;margin:0 0 14px;font-size:15px}.job-title .chev{color:var(--soft)}.log{border:1px solid var(--line);border-radius:9px;background:#090d12;min-height:420px;padding:15px 0;font:12px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;overflow:hidden}.log-line{display:grid;grid-template-columns:54px 16px 1fr;gap:8px;padding:2px 15px;color:#b7c0ca;animation:line-in .22s ease both}.log-time{color:#57606a}.log-mark{color:var(--blue)}.log-line.command{color:#f0f6fc}.log-line.success .log-mark{color:var(--green)}.log-line.warn .log-mark{color:var(--amber)}.log-line.fail .log-mark{color:var(--red)}.summary{display:none;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.summary.visible{display:grid;animation:line-in .3s ease both}.metric{border:1px solid var(--line);border-radius:8px;padding:11px 12px;background:var(--panel-2)}.metric span{display:block;color:var(--soft);font-size:11px}.metric strong{font:600 15px ui-monospace,SFMono-Regular,Consolas,monospace}.metric.good strong{color:var(--green)}
+    @keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{50%{opacity:.35}}@keyframes line-in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+    @media(max-width:760px){.app{width:min(100% - 20px,1120px);padding-top:6px}.topbar{margin-bottom:18px}.builder-head{margin-top:36px}.builder-grid{grid-template-columns:1fr}.preview{min-height:300px;border-right:0;border-bottom:1px solid var(--line);padding:24px}#maker-mote{width:210px}.form{padding:26px 20px}.workflow-body{grid-template-columns:1fr}.rail{border-right:0;border-bottom:1px solid var(--line)}.steps{display:grid;grid-template-columns:repeat(3,1fr)}.step{grid-template-columns:18px 1fr;padding:7px 5px;font-size:11px}.agent-card{display:none}.main{padding:20px 14px}.log{min-height:390px}.summary{grid-template-columns:1fr}.repo{display:none}}
+    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+    /* Match the original Mote artifact. GitHub Actions is the story here,
+       not a second visual system. */
+    :root{color-scheme:light;--bg:#F2ECE1;--fg:#1D1A15;--mut:#6E665A;--faint:#A79D8C;--line:#DFD6C6;--sunk:#EAE2D4;--focus:#1D1A15;--green:#427A4B;--blue:#1D1A15;--red:#B4483E;--amber:#9B6B25;--panel:var(--bg);--panel-2:var(--sunk);--text:var(--fg);--soft:var(--mut);--shadow:none}
+    :root[data-theme="dark"]{color-scheme:dark;--bg:#14120F;--fg:#EFEBE3;--mut:#A29A8D;--faint:#6A6357;--line:#2C2823;--sunk:#1D1A16;--focus:#EFEBE3;--green:#79A77F;--blue:#EFEBE3;--red:#D86C62;--amber:#C79A59}
+    body{background:var(--bg);color:var(--fg);font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;font-size:16px}
+    .app{width:100%;margin:0;padding:0}.topbar{display:none}
+    #builder-screen.active{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px 56px;gap:26px}
+    .builder-head{max-width:none;margin:0;text-align:center}.eyebrow{font-family:inherit;font-size:12px;font-weight:400;letter-spacing:.14em;color:var(--faint)}
+    .builder-head h1{font-family:Manrope,ui-sans-serif,system-ui,sans-serif;font-size:clamp(30px,6vw,46px);font-weight:800;letter-spacing:-.035em;margin:0}.builder-head p{display:none}
+    .builder-grid{display:flex;flex-direction:column;width:min(560px,100%);border:0;border-radius:0;overflow:visible;background:transparent;box-shadow:none}
+    .preview{order:0;width:min(300px,62vw);min-height:0;aspect-ratio:1;align-self:center;padding:0;background:none;border:0}.preview-name{display:none}.temperament{order:2;color:var(--mut);font-size:14.5px;min-height:1.5em;margin:-2px auto 18px}
+    #maker-mote{width:100%;aspect-ratio:1}.form{display:flex;flex-direction:column;padding:0}.field{margin:0 0 18px}.field legend,.label{margin:0 0 9px;font-size:12px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--faint)}
+    .body-list{grid-template-columns:repeat(8,1fr);gap:8px}.body-option{padding:7px;border:1.5px solid transparent;border-radius:11px;background:var(--sunk);transition:border-color .14s ease,background .14s ease,transform .13s ease}.body-option:hover{background:var(--line);transform:none}.body-option.selected{border-color:var(--focus);box-shadow:none}.swatches{gap:9px}.swatch{width:30px;height:30px;border:1.5px solid var(--line);box-shadow:none}.swatch.selected{transform:scale(1.13);outline:0;box-shadow:0 0 0 2px var(--bg),0 0 0 3.5px var(--focus)}
+    .name-input{padding:11px 14px;background:var(--sunk);color:var(--fg);border:1.5px solid var(--line);border-radius:11px}.name-input:focus{border-color:var(--focus);box-shadow:none}.continue{align-self:center;width:auto;padding:13px 32px;border:0;border-radius:999px;background:var(--fg);color:var(--bg);font-weight:400}.continue:hover{background:var(--fg);transform:translateY(-1px)}
+    #workflow-screen.active{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:42px 24px}.workflow{width:min(960px,100%);border:1.5px solid var(--line);border-radius:20px;background:color-mix(in srgb,var(--sunk) 48%,transparent);box-shadow:none}.workflow-head{height:62px;padding:0 22px;border-bottom:1.5px solid var(--line)}.workflow-head strong{font-family:Manrope,ui-sans-serif,system-ui,sans-serif;font-size:16px;font-weight:800}.branch{color:var(--faint)}.run-badge{border:1.5px solid var(--line);color:var(--mut)}.icon-button{border:1.5px solid var(--line);border-radius:50%;background:transparent}.icon-button:hover{background:var(--sunk)}
+    .workflow-body{grid-template-columns:250px 1fr;min-height:580px}.rail{padding:20px 12px;border-right:1.5px solid var(--line);background:transparent}.rail-title{color:var(--faint);font-size:12px;letter-spacing:.13em;text-transform:uppercase}.step{color:var(--mut);border-radius:11px}.step.active{background:var(--bg);color:var(--fg)}.step.done{color:var(--fg)}.status-icon{border:1.5px solid var(--line)}.step.done .status-icon{border-color:var(--fg);background:var(--fg);color:var(--bg)}.step.active .status-icon{border-color:var(--mut);border-top-color:transparent}.agent-card{border-color:var(--line)}.mini-mote{width:160px;height:160px}.mini-mote svg{overflow:visible}.agent-state{color:var(--mut)}
+    .main{padding:28px 30px 32px}.prompt{border:1.5px solid var(--line);border-radius:13px;background:var(--bg)}.prompt-avatar{background:var(--sunk);color:var(--mut)}.prompt small{color:var(--faint)}.prompt p{color:var(--fg)}.job-title{font-family:Manrope,ui-sans-serif,system-ui,sans-serif;font-weight:500}.job-title .chev{color:var(--faint)}.log{border:1.5px solid var(--line);border-radius:13px;background:var(--sunk);color:var(--mut)}.log-line{color:var(--mut)}.log-time{color:var(--faint)}.log-line.command{color:var(--fg)}.metric{border:1.5px solid var(--line);border-radius:11px;background:var(--bg)}.metric span{color:var(--mut)}.metric.good strong{color:var(--fg)}
+    @media(max-width:760px){#builder-screen.active{justify-content:flex-start}.body-list{grid-template-columns:repeat(4,1fr)}#workflow-screen.active{padding:16px 10px;align-items:flex-start}.workflow-body{grid-template-columns:1fr}.rail{border-right:0;border-bottom:1.5px solid var(--line)}.steps{grid-template-columns:repeat(2,1fr)}.main{padding:20px 14px}.summary{grid-template-columns:1fr}}
+    .chat-main{padding:0;display:flex;flex-direction:column;min-width:0;height:650px;background:var(--bg);overflow:hidden}
+    .chat-scroll{flex:1;min-height:0;padding:34px 34px 24px;overflow-y:auto;overscroll-behavior:contain;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--line) transparent}.chat-empty{height:100%;display:grid;place-items:center;color:var(--faint);font-family:Manrope,ui-sans-serif,sans-serif;font-size:18px}
+    .message{display:grid;grid-template-columns:38px minmax(0,1fr);gap:12px;max-width:680px;margin:0 auto 24px;animation:message-in .48s cubic-bezier(.22,.8,.3,1) both}.message.user{grid-template-columns:minmax(0,1fr) 30px;align-items:start}.message-avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--sunk);font-size:11px;font-weight:500}.avatar-slot{width:38px;height:38px}.message-avatar.mote{width:38px;height:38px;border-radius:0;background:transparent;will-change:transform}.message-avatar.mote svg{width:100%;height:100%;overflow:visible}.message-copy{padding-top:5px;color:var(--fg);line-height:1.65}.message-copy p{margin:0}.message.assistant .message-copy{justify-self:start;max-width:88%;padding:11px 15px;border-radius:18px 18px 18px 4px;background:var(--sunk)}.message.user .message-copy{justify-self:end;max-width:82%;padding:11px 15px;border-radius:18px 18px 4px 18px;background:color-mix(in srgb,var(--sunk) 76%,var(--fg) 5%)}.message.user .message-avatar{grid-column:2}.typing{display:inline-flex;gap:4px;align-items:center;height:24px}.typing i{width:5px;height:5px;border-radius:50%;background:var(--faint);animation:typing-dot 1s ease-in-out infinite}.typing i:nth-child(2){animation-delay:.14s}.typing i:nth-child(3){animation-delay:.28s}@keyframes typing-dot{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-4px);opacity:1}}@keyframes message-in{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+    .tool-card{--tool-tone:var(--amber);max-width:630px;margin:0 auto 24px;border:1.5px solid color-mix(in srgb,var(--tool-tone) 38%,var(--line));border-radius:13px;overflow:hidden;animation:tool-in .58s cubic-bezier(.22,.8,.3,1) both}.tool-head{display:flex;align-items:center;gap:9px;padding:10px 13px;background:color-mix(in srgb,var(--tool-tone) 8%,var(--sunk));font-size:13px}.tool-head:before{content:'Mote · tool';color:var(--faint);font-size:11px;margin-right:auto}.tool-head i{order:3;width:8px;height:8px;border-radius:50%;background:var(--tool-tone);box-shadow:0 0 0 4px color-mix(in srgb,var(--tool-tone) 12%,transparent)}.tool-body{padding:11px 13px;border-top:1.5px solid color-mix(in srgb,var(--tool-tone) 22%,var(--line));color:var(--mut);font:12px/1.65 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-line}.tool-card.compact{display:flex;gap:10px;align-items:flex-start;border:0;border-radius:11px;padding:8px 10px;overflow:visible;color:var(--mut);font-size:13px;background:color-mix(in srgb,var(--tool-tone) 6%,transparent)}.tool-card.compact .tool-pip{width:7px;height:7px;flex:0 0 auto;margin-top:7px;border-radius:50%;background:var(--tool-tone);box-shadow:0 0 0 4px color-mix(in srgb,var(--tool-tone) 10%,transparent)}.tool-card.compact strong{display:block;color:var(--fg);font-weight:500}.tool-card.compact span{white-space:pre-line}@keyframes tool-in{from{opacity:0;transform:translateY(12px) scale(.985);filter:blur(2px)}to{opacity:1;transform:none;filter:blur(0)}}
+    .composer-wrap{padding:12px 24px 20px;background:linear-gradient(transparent,var(--bg) 24%)}.composer{display:flex;align-items:flex-end;gap:10px;max-width:680px;margin:0 auto;padding:11px 11px 11px 16px;border:1.5px solid var(--line);border-radius:18px;background:var(--sunk)}.composer textarea{flex:1;min-height:26px;max-height:90px;padding:2px 0;border:0;resize:none;background:transparent;color:var(--fg);font:15px/1.45 "IBM Plex Sans",sans-serif;outline:0}.composer textarea::placeholder{color:var(--faint)}.send{width:34px;height:34px;flex:0 0 auto;border:0;border-radius:50%;display:grid;place-items:center;background:var(--fg);color:var(--bg)}.composer-note{text-align:center;margin-top:7px;color:var(--faint);font-size:11px}
+    .agent-state{display:none}.composer-wrap{position:relative;flex:0 0 auto}.composer textarea{overflow:hidden}
+    @media(max-width:760px){.chat-main{height:620px}.chat-scroll{padding:24px 15px}.composer-wrap{padding:10px 12px 14px}.message{margin-bottom:20px}}
+    .workspace-layout{width:min(1240px,100%);display:grid;grid-template-columns:220px minmax(0,960px);gap:34px;align-items:center}.screen.active .workspace-layout{animation:workspace-in .72s cubic-bezier(.22,.8,.3,1) both}.outside-agent{display:grid;justify-items:center;align-content:center;gap:8px}.outside-mote{width:210px;height:210px}.outside-mote svg{overflow:visible}.outside-name{font-family:Manrope,ui-sans-serif,sans-serif;font-weight:800;font-size:22px;letter-spacing:-.03em}.workflow{width:100%;transition:border-color .3s ease}.workflow-body{grid-template-columns:220px 1fr}.history{display:flex;flex-direction:column;gap:4px}.history-item{width:100%;padding:10px 11px;border:0;border-radius:11px;background:transparent;text-align:left;cursor:default;transition:background .24s ease,color .24s ease,transform .24s cubic-bezier(.22,.8,.3,1)}.history-item:hover{background:color-mix(in srgb,var(--bg) 62%,transparent);transform:translateX(3px)}.history-item strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:500}.history-item span{display:block;margin-top:2px;color:var(--faint);font-size:11px}.history-item.active{background:var(--bg)}.history-item:not(.active){color:var(--mut)}.new-chat{margin:0 0 14px;padding:9px 11px;border:1.5px solid var(--line);border-radius:11px;background:transparent;color:var(--mut);text-align:left;font-size:13px;transition:border-color .22s ease,color .22s ease,transform .22s ease}.new-chat:hover{border-color:var(--focus);color:var(--fg);transform:translateY(-1px)}.rail-title{padding:0 11px 9px}.send{transition:transform .2s cubic-bezier(.22,.8,.3,1),opacity .2s ease}.send:hover{transform:translateY(-2px)}.send:active{transform:scale(.93)}@keyframes workspace-in{from{opacity:0;transform:translateY(18px) scale(.99)}to{opacity:1;transform:none}}
+    .role-label{display:block;margin-bottom:4px;color:var(--faint);font-size:11px;font-weight:500;letter-spacing:.02em}.message.user .role-label{text-align:right}.message.assistant .message-copy{border:1px solid color-mix(in srgb,var(--line) 70%,transparent)}.message.user .message-copy{background:color-mix(in srgb,var(--fg) 8%,var(--sunk));border:1px solid color-mix(in srgb,var(--fg) 10%,var(--line))}
+    .tool-event{--event-tone:#c89455;max-width:630px;margin:0 auto 22px;color:var(--mut);animation:message-in .5s cubic-bezier(.22,.8,.3,1) both}.tool-event summary{list-style:none;display:grid;grid-template-columns:18px 1fr auto;align-items:center;gap:8px;padding:6px 8px;border-radius:9px;cursor:pointer;transition:background .22s ease,color .22s ease}.tool-event summary::-webkit-details-marker{display:none}.tool-event summary:hover{background:color-mix(in srgb,var(--sunk) 55%,transparent);color:var(--fg)}.event-button{width:12px;height:12px;border:0;border-radius:50%;background:var(--event-tone);box-shadow:0 0 0 4px color-mix(in srgb,var(--event-tone) 11%,transparent);cursor:pointer}.tool-event.running summary{animation:event-pulse 1.4s ease-in-out infinite}.tool-event.running .event-button{background:var(--faint);box-shadow:0 0 0 4px color-mix(in srgb,var(--faint) 10%,transparent)}.tool-event summary strong{font-size:13px;font-weight:500;color:inherit}.tool-event summary small{color:var(--faint);font-size:10px}.event-detail{margin:4px 8px 0 34px;padding:9px 11px;border-left:1.5px solid color-mix(in srgb,var(--event-tone) 45%,var(--line));color:var(--mut);font-size:12px;line-height:1.65;white-space:pre-line}.tool-event.code .event-detail{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.tool-event[open] summary{color:var(--fg)}@keyframes event-pulse{50%{opacity:.46}}
+    .role-label{display:none}.message.assistant .message-copy{padding:10px 14px;background:color-mix(in srgb,var(--agent-color,#888) 11%,var(--sunk));border-color:color-mix(in srgb,var(--agent-color,#888) 22%,var(--line))}.message.user .message-copy{padding:10px 14px;background:color-mix(in srgb,var(--fg) 9%,var(--sunk));border-color:color-mix(in srgb,var(--fg) 13%,var(--line))}
+    .activity{--event-tone:#c89455;max-width:630px;margin:0 auto 20px;color:var(--mut);animation:message-in .5s cubic-bezier(.22,.8,.3,1) both}.activity-toggle{width:100%;display:grid;grid-template-columns:18px 1fr 22px;align-items:center;gap:8px;padding:7px 8px;border:0;border-radius:9px;background:transparent;color:inherit;text-align:left;cursor:pointer;transition:background .22s ease,color .22s ease}.activity-toggle:hover{background:color-mix(in srgb,var(--sunk) 52%,transparent);color:var(--fg)}.activity-toggle strong{font-size:13px;font-weight:500}.activity-dot{width:11px;height:11px;border-radius:50%;background:var(--event-tone);box-shadow:0 0 0 4px color-mix(in srgb,var(--event-tone) 11%,transparent)}.activity.running .activity-toggle{animation:event-pulse 1.4s ease-in-out infinite}.activity.running .activity-dot{background:var(--faint);box-shadow:0 0 0 4px color-mix(in srgb,var(--faint) 10%,transparent)}.activity-arrow{width:18px;height:18px;display:grid;place-items:center;color:var(--faint);transition:transform .5s cubic-bezier(.22,.8,.3,1),color .2s ease}.activity.expanded .activity-arrow{transform:rotate(180deg);color:var(--fg)}.activity-process{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .62s cubic-bezier(.22,.8,.3,1),opacity .42s ease}.activity.expanded .activity-process{grid-template-rows:1fr;opacity:1}.activity-process-inner{min-height:0;overflow:hidden}.activity-detail{margin:3px 8px 2px 34px;padding:8px 11px;border-left:1.5px solid color-mix(in srgb,var(--event-tone) 45%,var(--line));font-size:12px;line-height:1.65;white-space:pre-line}.activity.code .activity-detail{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}.activity.thinking{--event-tone:var(--faint)}
+    .composer-actions{display:flex;gap:6px}.voice-button{width:34px;height:34px;border:1.5px solid var(--line);border-radius:50%;display:grid;place-items:center;background:transparent;color:var(--mut);cursor:pointer;transition:background .22s ease,color .22s ease,transform .22s ease}.voice-button:hover{background:var(--bg);color:var(--fg);transform:translateY(-1px)}.voice-button.active{background:#b4483e;border-color:#b4483e;color:white;transform:scale(.94)}.call-stage{display:none;position:relative;flex:1;min-height:0;align-items:center;justify-content:center;overflow:hidden}.call-visual{display:grid;justify-items:center;align-content:center;width:min(560px,100%);padding:28px 24px 130px}.call-mote-target{width:250px;height:250px;display:grid;place-items:center}.call-mote-target .outside-mote{width:250px;height:250px}.call-agent-stt{max-width:470px;min-height:54px;margin-top:-8px;text-align:center;color:var(--fg);font-size:17px;line-height:1.55}.call-browser-status{min-height:24px;margin-top:2px;color:var(--faint);font-size:12px;font-style:italic;text-align:center;opacity:0;transition:opacity .45s ease}.call-browser-status.visible{opacity:1}.call-events{display:none}.call-user-stt{position:absolute;left:50%;bottom:18px;translate:-50% 0;width:min(620px,calc(100% - 34px));min-height:48px;text-align:center;color:var(--fg);font:500 17px/1.5 Manrope,ui-sans-serif,sans-serif}.workspace-layout.call-mode{grid-template-columns:0 minmax(0,960px);gap:0;justify-content:center}.workspace-layout.call-mode .outside-agent{opacity:0;pointer-events:none}.workspace-layout.call-mode .workflow{background:var(--bg)}.workspace-layout.call-mode .workflow-head,.workspace-layout.call-mode .rail{display:none}.workspace-layout.call-mode .workflow-body{display:block}.workspace-layout.call-mode .chat-main{background:var(--bg)}.workspace-layout.call-mode .chat-scroll{display:none}.workspace-layout.call-mode .call-stage{display:flex}.workspace-layout.call-mode .composer-wrap{background:linear-gradient(transparent,var(--bg) 24%)}.workspace-layout.call-mode .composer{background:var(--sunk);border-color:var(--line)}.workspace-layout.call-mode .composer textarea{color:var(--fg)}.workspace-layout.call-mode .composer-note{display:none}
+    .theme-toggle{position:fixed;z-index:20;top:18px;right:18px;width:42px;height:42px;display:grid;place-items:center;border:1.5px solid var(--line);border-radius:50%;background:color-mix(in srgb,var(--sunk) 84%,transparent);color:var(--fg);cursor:pointer;backdrop-filter:blur(14px);transition:transform .2s ease,background .2s ease}.theme-toggle:hover{transform:translateY(-2px);background:var(--sunk)}.theme-toggle .moon{display:none}:root[data-theme="dark"] .theme-toggle .sun{display:none}:root[data-theme="dark"] .theme-toggle .moon{display:block}
+    .activity-line{min-height:1.65em;opacity:.72;transition:opacity .25s ease}.activity-line.typing,.activity-line.done{opacity:1}.activity-line.typing:after{content:'';display:inline-block;width:1px;height:1em;margin-left:2px;vertical-align:-.12em;background:currentColor;animation:caret-blink .72s steps(1) infinite}@keyframes caret-blink{50%{opacity:0}}
+    #mode-screen.active{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:40px 24px}.mode-choice{width:min(700px,100%);text-align:center}.mode-choice h1{margin:0;font:800 clamp(30px,6vw,46px)/1.1 Manrope,ui-sans-serif,sans-serif;letter-spacing:-.035em}.mode-choice>p{margin:10px 0 28px;color:var(--mut)}.mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.mode-card{padding:24px;border:1.5px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--sunk) 48%,transparent);color:var(--fg);text-align:left;cursor:pointer;transition:transform .3s cubic-bezier(.22,.8,.3,1),border-color .25s ease,background .25s ease}.mode-card:hover{transform:translateY(-4px);border-color:var(--focus);background:var(--sunk)}.mode-card svg{width:26px;height:26px;margin-bottom:28px}.mode-card strong{display:block;font:800 19px/1.2 Manrope,ui-sans-serif,sans-serif}.mode-card span{display:block;margin-top:7px;color:var(--mut);font-size:14px;line-height:1.5}@media(max-width:600px){.mode-grid{grid-template-columns:1fr}}
+    @media(max-width:1050px){.workspace-layout{grid-template-columns:160px minmax(0,1fr);gap:18px}.outside-mote{width:150px;height:150px}}
+    @media(max-width:760px){.workspace-layout{display:block}.outside-agent{display:none}.workflow-body{grid-template-columns:1fr}.rail{display:none}}
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" title="Switch theme"><svg class="sun" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><svg class="moon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 15.2A8.2 8.2 0 0 1 8.8 4a8.2 8.2 0 1 0 11.2 11.2Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></button>
+  <div class="app">
+    <header class="topbar"><div class="mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 5 3 12l5 7M16 5l5 7-5 7M14 3l-4 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span class="brand">mote</span><span class="slash">/</span><span class="repo">agent-workflow</span><span class="live"><i class="live-dot"></i>Demo environment</span></header>
+
+    <section class="screen active" id="builder-screen">
+      <div class="builder-head"><h1>Make a Mote</h1><p>Give your workflow a face. The Mote will react as it plans, writes code, runs tools, and ships the result.</p></div>
+      <div class="builder-grid">
+        <div class="preview"><div id="maker-mote" aria-label="Mote preview"></div><div class="preview-name" id="preview-name">Patch</div></div>
+        <form class="form" id="maker-form">
+          <fieldset class="field"><legend>Body</legend><div class="body-list" id="body-list"></div></fieldset>
+          <fieldset class="field"><legend>Colour</legend><div class="swatches" id="swatches"></div></fieldset>
+          <label class="field"><span class="label">Name</span><input class="name-input" id="name" maxlength="24" value="Patch" autocomplete="off"></label>
+          <div class="temperament" id="temperament"></div>
+          <button class="continue" type="submit">Continue to workflow</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="screen" id="mode-screen"><div class="mode-choice"><h1>Choose a simulation</h1><p>See the same Mote in two different kinds of agent experience.</p><div class="mode-grid"><button class="mode-card" type="button" data-demo="agentic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 5h16v14H4zM8 9h8M8 13h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><strong>Agentic workflow</strong><span>A complete pull-request workflow with messages, thinking, tools, tests, and release.</span></button><button class="mode-card" type="button" data-demo="call"><svg viewBox="0 0 24 24" fill="none"><path d="M7.5 4.5 10 9 7.7 11a15 15 0 0 0 5.3 5.3l2-2.3 4.5 2.5-.7 3.3c-.2.8-.9 1.3-1.7 1.2C9.4 20.2 3.8 14.6 3 6.9c-.1-.8.4-1.5 1.2-1.7l3.3-.7Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><strong>Agent call</strong><span>A casual voice conversation with live STT, reactions, web browsing, and personality.</span></button></div></div></section>
+
+    <section class="screen" id="workflow-screen">
+      <div class="workspace-layout">
+        <div class="outside-agent"><div class="outside-mote" id="agent-mote"></div><div class="outside-name" id="agent-name">Patch</div><div class="agent-state" id="agent-state">Ready</div></div>
+        <div class="workflow">
+        <div class="workflow-head"><strong>Mote Chat</strong><span class="branch">Agent workspace</span><div class="head-actions"><div class="run-badge" id="run-badge"><i></i><span>Ready</span></div><button class="icon-button" id="replay" aria-label="Replay conversation" title="Replay"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 4v6h6M20 20v-6h-6M5.1 15a8 8 0 0 0 13.2 2M18.9 9A8 8 0 0 0 5.7 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div>
+        <div class="workflow-body">
+          <aside class="rail"><button class="new-chat" type="button">＋ New conversation</button><div class="rail-title">Chat history</div><nav class="history" aria-label="Chat history"><button class="history-item active" type="button"><strong>Build and verify feature</strong><span>Now</span></button><button class="history-item" type="button"><strong>Fix cache invalidation</strong><span>Yesterday</span></button><button class="history-item" type="button"><strong>Audit avatar API</strong><span>Monday</span></button><button class="history-item" type="button"><strong>Theme integration</strong><span>Last week</span></button><button class="history-item" type="button"><strong>Release preparation</strong><span>2 weeks ago</span></button></nav></aside>
+          <main class="chat-main"><div class="chat-scroll" id="chat" aria-live="polite"><div class="chat-empty" id="chat-empty">Start a conversation</div></div><div class="call-stage" id="call-stage"><div class="call-visual"><div class="call-mote-target" id="call-mote-target"></div><div class="call-agent-stt" id="call-agent-stt"></div><div class="call-browser-status" id="call-browser-status"></div><div class="call-events" id="call-events"></div></div><div class="call-user-stt" id="call-user-stt"></div></div><div class="composer-wrap"><div class="composer"><textarea id="composer" rows="1" placeholder="Message your agent" readonly></textarea><div class="composer-actions"><button class="voice-button" id="mic-button" type="button" aria-label="Microphone"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 15a4 4 0 0 0 4-4V7a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4Zm-7-4a7 7 0 0 0 14 0M12 18v3M9 21h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button><button class="voice-button" id="call-button" type="button" aria-label="Start agent call"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M7.5 4.5 10 9 7.7 11a15 15 0 0 0 5.3 5.3l2-2.3 4.5 2.5-.7 3.3c-.2.8-.9 1.3-1.7 1.2C9.4 20.2 3.8 14.6 3 6.9c-.1-.8.4-1.5 1.2-1.7l3.3-.7Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="send" type="button" aria-label="Send message"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="m6 12 6-6 6 6M12 6v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div></div><div class="composer-note">Scripted demo · messages are sent automatically</div></div></main>
+        </div>
+      </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import Mote from './mote-avatar.js'
+
+    const $ = (id) => document.getElementById(id)
+    const builder = $('builder-screen'), modeScreen = $('mode-screen'), workflow = $('workflow-screen')
+    const bodies = Mote.bodies(), palette = Mote.palette()
+    let moteTheme = document.documentElement.dataset.theme
+    const mountedMotes = []
+    let selectedBody = bodies[0].id, selectedPaint = palette.find((p) => p.label.toLowerCase().includes('blue'))?.hex || palette[0].hex
+    let maker, agent, timers = [], profileMote, profileHost, pendingName = 'Patch', runToken = 0
+
+    function mountMaker() {
+      const skin = { name: $('name').value || 'Patch', body: selectedBody, paint: selectedPaint }
+      if (maker) maker.setSkin(skin)
+      else {
+        maker = Mote.mount($('maker-mote'), { ...skin, theme: moteTheme, ambient: false }); mountedMotes.push(maker)
+        maker.listening()
+      }
+      const t = Mote.describe($('name').value || 'Patch')
+      const energy = t.baseA > .12 ? 'lively' : t.baseA < -.12 ? 'calm' : 'steady'
+      const social = t.sociability > .6 ? 'outgoing' : t.sociability < .38 ? 'reserved' : 'observant'
+      $('temperament').textContent = `${$('name').value || 'Patch'} will be ${energy}, ${social}, and curious.`
+    }
+
+    bodies.forEach((body, index) => {
+      const button = document.createElement('button')
+      button.type = 'button'; button.className = `body-option${index === 0 ? ' selected' : ''}`; button.title = body.label; button.setAttribute('aria-label', body.label)
+      const host = document.createElement('span'); host.className = 'body-host'; button.appendChild(host); $('body-list').appendChild(button)
+      const sample = Mote.mount(host, { name: body.label, body: body.id, paint: '#d8dee4', theme: moteTheme, ambient: false }); mountedMotes.push(sample)
+      sample.after(1.1, () => sample.stop())
+      button.addEventListener('click', () => { selectedBody = body.id; document.querySelectorAll('.body-option').forEach((el) => el.classList.remove('selected')); button.classList.add('selected'); mountMaker() })
+    })
+    palette.forEach((paint) => {
+      const button = document.createElement('button')
+      button.type = 'button'; button.className = `swatch${paint.hex === selectedPaint ? ' selected' : ''}`; button.style.setProperty('--paint', paint.hex); button.title = paint.label; button.setAttribute('aria-label', paint.label)
+      button.addEventListener('click', () => { selectedPaint = paint.hex; document.querySelectorAll('.swatch').forEach((el) => el.classList.remove('selected')); button.classList.add('selected'); mountMaker() })
+      $('swatches').appendChild(button)
+    })
+    $('name').addEventListener('input', mountMaker)
+    $('theme-toggle').addEventListener('click', () => { moteTheme = moteTheme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = moteTheme; localStorage.setItem('mote-theme', moteTheme); $('theme-toggle').setAttribute('aria-label', `Switch to ${moteTheme === 'dark' ? 'light' : 'dark'} mode`); mountedMotes.forEach((mote) => mote.setTheme(moteTheme)); agent?.setTheme(moteTheme); profileMote?.setTheme(moteTheme) })
+    $('theme-toggle').setAttribute('aria-label', `Switch to ${moteTheme === 'dark' ? 'light' : 'dark'} mode`)
+    mountMaker()
+
+    const scenario = [
+      { at: 6000, step: 1, face: 'attentive', message: 'I’ll take a look. I’ll map the repository first, reproduce the issue, and keep the public API unchanged.' },
+      { at: 9500, step: 1, face: 'neutral', anim: 'thinking', thinking: 'Mapping the request against the repository structure\nChoosing the safest place to begin' },
+      { at: 13000, step: 2, face: 'curious', anim: 'peek', message: 'I found three connected surfaces: the editor, the preview runtime, and persistence. I’m inspecting them together.' },
+      { at: 16500, step: 2, face: 'attentive', anim: 'orbit', tool: ['Inspect repository', 'Scanning routes, components, tests, and project rules…'] },
+      { at: 20000, step: 2, face: 'confused', anim: 'glitch', thinking: 'Two feature flags define opposite defaults\nTracing which one actually reaches production' },
+      { at: 23500, step: 2, face: 'suspicious', anim: 'wide', message: 'The older flag is dead code. Keeping it would make the new behavior nondeterministic.' },
+      { at: 27000, step: 2, face: 'unimpressed', anim: 'nope', message: 'I’m rejecting the compatibility shim. It adds complexity without supporting any live caller.' },
+      { at: 27000, step: 3, face: 'attentive', anim: 'alert', tool: ['Write implementation', 'Adding the workflow state machine…\nConnecting preview updates…\nWriting migration-safe persistence…', 'detail'] },
+      { at: 30500, step: 3, face: 'shy', anim: 'wink', message: 'There was a smaller path: the existing serializer already handles the new state once it is registered.' },
+      { at: 34000, step: 3, face: 'round', anim: 'egg', tool: ['Start sandbox', 'Isolated browser environment ready\nSeeded with a clean workspace'] },
+      { at: 37500, step: 3, face: 'excited', anim: 'play', tool: ['Run interactive preview', 'Create → edit → refresh → restore\nPreview is responding'] },
+      { at: 41000, step: 3, face: 'neutral', anim: 'hexagon', tool: ['Build package', 'Bundling public module\nGenerating types\nChecking package surface'] },
+      { at: 44500, step: 4, face: 'excited', anim: 'charge', message: 'The feature works in the sandbox. I’m charging through the full test suite now.' },
+      { at: 48000, step: 4, face: 'attentive', anim: 'notify', tool: ['Test update', '18 checks passed\n1 visual regression still running'] },
+      { at: 51500, step: 4, face: 'surprised', anim: 'exclaim', tool: ['Alert', 'Visual regression failed: restored state renders one frame late'] },
+      { at: 55000, step: 4, face: 'scared', anim: 'burst', message: 'The delayed frame also breaks keyboard focus after refresh. That is larger than the screenshot suggested.' },
+      { at: 58500, step: 4, face: 'sad', anim: 'melt', message: 'The first implementation put restoration too late in the lifecycle. I need to move it before the initial render.' },
+      { at: 62000, step: 4, face: 'angry', anim: 'focus', tool: ['Fix lifecycle', 'Restore persisted state before mount\nPreserve focus target across hydration', 'detail'] },
+      { at: 65500, step: 4, face: 'curious', anim: 'magnet', tool: ['Gather evidence', 'Collecting snapshots, accessibility tree, and test artifacts…'] },
+      { at: 69000, step: 4, face: 'happy', anim: 'nod', message: 'The restored state, visual snapshot, and keyboard path now agree.' },
+      { at: 72500, step: 5, face: 'sleepy', anim: 'sleep', message: 'The deployment is queued. I’ll wait for the preview environment to wake up.' },
+      { at: 76000, step: 5, face: 'surprised', anim: 'portal', tool: ['Open preview', 'Teleporting into preview deployment…\nEnvironment is live'] },
+      { at: 79500, step: 5, face: 'excited', anim: 'comet', tool: ['Deploy release', 'Uploading assets\nPromoting build\nRunning production smoke test'] },
+      { at: 83000, step: 5, face: 'happy', anim: 'celebrate', tool: ['Verification complete', '✓ 24 tests passed\n✓ visual regression passed\n✓ keyboard flow passed', 'detail'], toolSuccess: true },
+      { at: 86500, step: 5, face: 'attentive', anim: 'listening', tool: ['Accessibility audit', 'Checking landmarks, focus order, labels, contrast, and reduced motion…'] },
+      { at: 90000, step: 5, face: 'suspicious', anim: 'wide', tool: ['Security review', 'No new network permissions\nNo secret or token exposure\nDependency surface unchanged'] },
+      { at: 93500, step: 5, face: 'happy', anim: 'nod', message: 'Accessibility and security checks are clean. The release can keep the same permissions and public API.' },
+      { at: 97000, step: 5, face: 'attentive', anim: 'alert', tool: ['Write release notes', 'Documenting the new workflow, migration behavior, and verification evidence…', 'detail'] },
+      { at: 100500, step: 5, face: 'shy', anim: 'notify', message: 'The preview is ready for approval. I’ve attached the test evidence and the focused before/after diff.' },
+      { at: 104000, step: 5, face: 'excited', anim: 'comet', tool: ['Production smoke test', 'Create → edit → refresh → restore\nAll paths healthy'], toolSuccess: true },
+      { at: 107500, step: 5, face: 'laughing', anim: 'celebrate', message: 'Everything passed three times — locally, in preview, and in production.' },
+      { at: 111000, step: 5, act: 'shipped', message: 'Shipped. The feature is implemented, accessible by keyboard, documented, and verified in production.', finish: true }
+    ]
+
+    const scriptedPrompt = 'Review this pull request. Fix the flaky cache test, keep the public API unchanged, then run the full check.'
+    function clearRun() { timers.forEach(clearTimeout); timers = []; profileMote?.destroy(); profileMote = null; profileHost = null; if (agent?.el && $('agent-name')) $('agent-name').before(agent.el); document.querySelector('.workspace-layout').classList.remove('call-mode'); $('call-button').classList.remove('active'); $('mic-button').classList.remove('active'); $('call-agent-stt').textContent = ''; $('call-user-stt').textContent = ''; $('call-browser-status').textContent = ''; $('call-browser-status').classList.remove('visible'); $('call-events').innerHTML = ''; runToken += 1; $('chat').innerHTML = '<div class="chat-empty">Start a conversation</div>'; $('composer').value = ''; document.querySelectorAll('.step').forEach((s) => s.className = 'step') }
+    function scrollChat() { $('chat').scrollTop = $('chat').scrollHeight }
+    function clearEmpty() { $('chat').querySelector('.chat-empty')?.remove() }
+    function addUserMessage(text) { clearEmpty(); const el = document.createElement('div'); el.className = 'message user'; el.innerHTML = '<div class="message-copy"><span class="role-label">You</span><p></p></div><div class="message-avatar">U</div>'; el.querySelector('p').textContent = text; $('chat').appendChild(el); scrollChat() }
+    function performEvent(mote, event) {
+      if (event.toolDone) mote.toolResult(true)
+      if (event.face) mote.episode([{ face: event.face, ...(event.anim ? { anim: event.anim } : {}), hold: 3.6 }])
+      else if (event.act === 'tool') mote.tool('repository')
+      else if (typeof mote[event.act] === 'function') mote[event.act]()
+      else if (event.act) mote.animate(event.act)
+    }
+    function addAssistantMessage(text, token, event) {
+      clearEmpty(); const previous = profileHost?.isConnected ? profileHost.getBoundingClientRect() : null; const el = document.createElement('div'); el.className = 'message assistant'; el.innerHTML = '<div class="avatar-slot"></div><div class="message-copy"><span class="role-label"></span><div class="typing"><i></i><i></i><i></i></div><p></p></div>'; el.querySelector('.role-label').textContent = agent.skin().name; $('chat').appendChild(el)
+      if (!profileHost) { profileHost = document.createElement('div'); profileHost.className = 'message-avatar mote' }
+      el.querySelector('.avatar-slot').appendChild(profileHost)
+      if (!profileMote) profileMote = Mote.mount(profileHost, { ...agent.persona(), theme: moteTheme, ambient: true })
+      performEvent(profileMote, event)
+      if (previous) { const next = profileHost.getBoundingClientRect(); profileHost.animate([{ transform: `translate(${previous.left - next.left}px, ${previous.top - next.top}px)` }, { transform: 'translate(0, 0)' }], { duration: 520, easing: 'cubic-bezier(.22,.8,.3,1)' }) }
+      scrollChat()
+      timers.push(setTimeout(() => { if (token !== runToken) return; el.querySelector('.typing').remove(); const output = el.querySelector('p'); text.split('').forEach((char, index) => timers.push(setTimeout(() => { if (token !== runToken) return; output.textContent += char; scrollChat() }, index * 17))) }, 650))
+    }
+    function addActivity(title, body, tone, mode, kind = 'tool', host = $('chat'), duration = 3000) {
+      const token = runToken, el = document.createElement('div'); el.className = `activity ${kind} running expanded${mode === 'detail' ? ' code' : ''}`; el.style.setProperty('--event-tone', tone); el.innerHTML = '<button class="activity-toggle" type="button"><i class="activity-dot"></i><strong></strong><span class="activity-arrow"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="m5 8 5 5 5-5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button><div class="activity-process"><div class="activity-process-inner"><div class="activity-detail"></div></div></div>'; el.querySelector('strong').textContent = title; el.querySelector('.activity-toggle').addEventListener('click', () => el.classList.toggle('expanded')); const detail = el.querySelector('.activity-detail'), lines = body.split('\n'); let offset = 260
+      lines.forEach((line) => { const row = document.createElement('div'); row.className = 'activity-line'; detail.appendChild(row); timers.push(setTimeout(() => { if (token !== runToken) return; row.classList.add('typing') }, offset)); line.split('').forEach((char, index) => timers.push(setTimeout(() => { if (token !== runToken) return; row.textContent += char; if (host === $('chat')) scrollChat() }, offset + index * 16))); offset += line.length * 16 + 260; timers.push(setTimeout(() => { if (token !== runToken) return; row.classList.remove('typing'); row.classList.add('done') }, offset - 220)) })
+      host.appendChild(el); if (host === $('chat')) scrollChat(); const finishAt = Math.max(duration, offset + 320); timers.push(setTimeout(() => { if (token !== runToken) return; el.classList.remove('running'); el.classList.remove('expanded'); if (host === $('chat')) scrollChat() }, finishAt)); return el
+    }
+    function addTool([title, body, mode], success) { const words = `${title} ${body}`.toLowerCase(); const tone = success || /passed|complete|ready|healthy/.test(words) ? '#78a97d' : /failed|alert|error/.test(words) ? '#d86c62' : '#c89455'; addActivity(title, body, tone, mode) }
+    function addThinking(event) { const thoughts = { neutral: 'Mapping the request against the repository structure\nChoosing the safest implementation path', curious: 'Exploring the strongest candidates\nChecking which assumption needs evidence', attentive: 'Reading the latest result closely\nPreparing the next concrete action', confused: 'Reconciling conflicting signals\nTracing which source controls production', suspicious: 'Comparing behavior against the public contract\nLooking for hidden regressions', unimpressed: 'Testing whether the extra complexity earns its place\nDiscarding the weaker approach', shy: 'Looking for a smaller existing path\nChecking whether the current primitives are enough', excited: 'Checking readiness for the next stage\nKeeping the result bounded and reversible', surprised: 'Updating the plan after an unexpected result\nSeparating symptom from cause', scared: 'Assessing the blast radius\nProtecting user state before continuing', sad: 'Tracing where the first approach went wrong\nPreserving the useful parts', angry: 'Narrowing onto the failing lifecycle boundary\nPreparing a focused correction', happy: 'Verifying the evidence agrees across surfaces\nPreparing a concise update', laughing: 'Confirming the final checks one more time\nSummarizing what shipped' }; addActivity('Thinking', event.thinking || thoughts[event.face] || 'Reviewing the latest evidence\nChoosing the next useful action', '#8f887d', null, 'thinking') }
+    function setStep(index, finish = false) { document.querySelectorAll('.step').forEach((el, i) => { el.className = `step${i < index || (finish && i === index) ? ' done' : i === index ? ' active' : ''}`; el.querySelector('.status-icon').textContent = i < index || (finish && i === index) ? '✓' : '' }) }
+    function typeSTT(host, text, token, speed = 28, revealFirstWord = false) { const lead = revealFirstWord ? (text.match(/^\S+\s?/)?.[0].length || 1) : 1; host.textContent = text.slice(0, lead); text.slice(lead).split('').forEach((char, index) => timers.push(setTimeout(() => { if (token === runToken) host.textContent += char }, (index + 1) * speed))) }
+    function runCall(token) {
+      const user = $('call-user-stt'), reply = $('call-agent-stt'), browserStatus = $('call-browser-status'), mic = $('mic-button')
+      const later = (ms, fn) => timers.push(setTimeout(() => { if (token === runToken) fn() }, ms))
+      const script = [
+        { who: 'user', text: 'Hey.', face: 'attentive' },
+        { who: 'agent', text: "Hey. What's up?", face: 'attentive' },
+        { who: 'user', text: "I'm thinking about going to Tokyo. Is October a good time?", face: 'curious' },
+        { who: 'agent', text: 'Yeah — actually, let me check current travel info too.', face: 'curious' },
+        { action: 'browse', face: 'curious', anim: 'orbit', hold: 3200 },
+        { action: 'result', face: 'happy', anim: 'notify', hold: 1800 },
+        { who: 'agent', text: 'October is generally a great time. Cooler weather, lower humidity, and autumn starts creeping in later in the month.', face: 'happy' },
+        { who: 'user', text: 'Okay. Find me something interesting to do there. Not the obvious tourist stuff.', face: 'excited' },
+        { who: 'agent', text: 'Oh, absolutely.', face: 'excited' },
+        { action: 'browse', face: 'curious', anim: 'orbit', hold: 3200 },
+        { action: 'think', face: 'curious', anim: 'thinking', hold: 2200 },
+        { who: 'agent', text: 'How weird are you willing to go?', face: 'curious' },
+        { who: 'user', text: 'Very.', face: 'proud' },
+        { who: 'agent', text: 'Perfect.', face: 'proud' },
+        { action: 'browse', face: 'excited', anim: 'orbit', hold: 3000 },
+        { action: 'surprise', face: 'excited', anim: 'exclaim', hold: 1800 },
+        { who: 'agent', text: 'Tokyo has a parasite museum.', face: 'excited' },
+        { who: 'user', text: 'A what?', face: 'surprised', anim: 'wide' },
+        { who: 'agent', text: 'The Meguro Parasitological Museum.', face: 'surprised' },
+        { action: 'think', face: 'attentive', anim: 'thinking', hold: 2000 },
+        { who: 'agent', text: 'And one of its exhibits is an extremely long tapeworm.', face: 'attentive' },
+        { who: 'user', text: "That's disgusting.", face: 'unimpressed' },
+        { who: 'agent', text: 'You specifically asked for weird.', face: 'unimpressed', anim: 'wink' },
+        { who: 'user', text: 'Fair. What else?', face: 'attentive' },
+        { who: 'agent', text: 'Give me a second.', face: 'attentive' },
+        { action: 'think', face: 'curious', anim: 'thinking', hold: 2600 },
+        { who: 'agent', text: 'Actually, instead of throwing random places at you, I should figure out what you like first.', face: 'curious' },
+        { who: 'agent', text: 'Museums, technology, food, architecture, nightlife, or completely bizarre experiences?', face: 'proud' },
+        { who: 'user', text: 'Technology and bizarre experiences.', face: 'excited' },
+        { who: 'agent', text: "That's a dangerous combination.", face: 'excited' },
+        { action: 'browse', face: 'curious', anim: 'orbit', hold: 3200 },
+        { action: 'result', face: 'happy', anim: 'notify', hold: 1500 },
+        { who: 'agent', text: 'Okay, I have several.', face: 'happy' },
+        { action: 'think', face: 'attentive', anim: 'thinking', hold: 2100 },
+        { who: 'user', text: 'Wait.', face: 'attentive' },
+        { who: 'user', text: 'Could you just plan my entire day?', face: 'surprised' },
+        { who: 'agent', text: 'Yeah.', face: 'happy' },
+        { action: 'think', face: 'curious', anim: 'thinking', hold: 2500 },
+        { action: 'browse', face: 'curious', anim: 'orbit', hold: 3000 },
+        { action: 'think', face: 'attentive', anim: 'thinking', hold: 2200 },
+        { action: 'browse', face: 'curious', anim: 'orbit', hold: 3000 },
+        { action: 'think', face: 'proud', anim: 'thinking', hold: 2400 },
+        { who: 'agent', text: 'Done. Breakfast in Shibuya, technology in the morning, lunch nearby, parasite museum in the afternoon, then something considerably less horrifying in the evening.', face: 'proud' },
+        { who: 'user', text: 'You really want me to visit that parasite museum.', face: 'shy' },
+        { who: 'agent', text: "I've become emotionally invested.", face: 'shy' },
+        { who: 'user', text: 'Okay, add it.', face: 'happy' },
+        { action: 'write', face: 'happy', anim: 'alert', hold: 1500 },
+        { who: 'agent', text: 'Added.', face: 'happy', anim: 'notify' },
+        { who: 'user', text: 'Actually, remove the parasite museum.', face: 'neutral' },
+        { action: 'stare', face: 'suspicious', hold: 2500 },
+        { who: 'agent', text: 'Why?', face: 'suspicious' },
+        { who: 'user', text: "I don't want to see an eight-meter tapeworm on vacation.", face: 'sad' },
+        { who: 'agent', text: 'Understandable.', face: 'sad' },
+        { action: 'write', face: 'sad', anim: 'alert', hold: 1600 },
+        { who: 'user', text: 'You seem upset.', face: 'unimpressed' },
+        { who: 'agent', text: "I don't have feelings.", face: 'unimpressed' },
+        { action: 'pause', face: 'sad', hold: 2200 },
+        { who: 'agent', text: "Remove the museum. It's fine.", face: 'sad' },
+        { who: 'user', text: 'Put it back.', face: 'surprised', anim: 'wide' },
+        { action: 'brighten', face: 'excited', hold: 1200 },
+        { who: 'agent', text: 'Really?', face: 'excited' },
+        { who: 'user', text: 'Yes.', face: 'attentive' },
+        { action: 'write', face: 'excited', anim: 'alert', hold: 1600 },
+        { who: 'agent', text: "It's back.", face: 'laughing' },
+        { who: 'user', text: "You're weird.", face: 'proud' },
+        { who: 'agent', text: 'You selected technology and bizarre experiences.', face: 'proud', anim: 'wink' },
+        { action: 'notification', face: 'curious', anim: 'notify', hold: 1800 },
+        { action: 'confused', face: 'confused', hold: 1800 },
+        { action: 'scared', face: 'scared', hold: 1800 },
+        { who: 'user', text: 'What?', face: 'attentive' },
+        { who: 'agent', text: 'Nothing.', face: 'suspicious' },
+        { who: 'user', text: 'What did it say?', face: 'curious' },
+        { who: 'agent', text: 'Nothing important.', face: 'suspicious' },
+        { who: 'user', text: 'Show me.', face: 'attentive' },
+        { action: 'egg', face: 'neutral', anim: 'egg', hold: 3200 },
+        { who: 'user', text: 'Seriously?', face: 'confused' },
+        { action: 'silence', face: 'neutral', hold: 1800 },
+        { who: 'user', text: 'Come back.', face: 'attentive' },
+        { who: 'agent', text: 'No.', face: 'shy' },
+        { who: 'user', text: 'Come on.', face: 'curious' },
+        { action: 'think', face: 'curious', anim: 'thinking', hold: 2200 },
+        { action: 'hexagon', face: 'neutral', anim: 'hexagon', hold: 2600 },
+        { who: 'agent', text: "I don't know why I did that.", face: 'confused' },
+        { who: 'user', text: 'Neither do I.', face: 'laughing' },
+        { who: 'agent', text: 'Fair.', face: 'laughing' },
+        { who: 'user', text: "Anyway, I'm done.", face: 'happy' },
+        { who: 'agent', text: 'Your Tokyo plan is ready.', face: 'happy', anim: 'wink' },
+        { who: 'user', text: 'Thanks.', face: 'attentive' },
+        { action: 'idle', face: 'neutral', anim: 'idle', hold: 2400 },
+        { action: 'final', face: 'proud', hold: 2200 },
+        { action: 'idle', face: 'neutral', anim: 'idle', hold: 3000 },
+      ]
+      let cursor = 500
+      script.forEach((event) => {
+        const textDuration = event.text ? event.text.length * (event.who === 'user' ? 28 : 17) : 0
+        const duration = event.hold || (event.who === 'agent' ? Math.max(2600, textDuration + 1500) : Math.max(2100, textDuration + 950))
+        later(cursor, () => {
+          if (event.who === 'user') { reply.textContent = ''; mic.classList.add('active'); agent.episode([{ face: event.face || 'attentive', anim: 'listening', hold: Math.max(1.8, duration / 1000) }]); typeSTT(user, event.text, token, 28); timers.push(setTimeout(() => { if (token !== runToken) return; mic.classList.remove('active'); if (event.anim && event.anim !== 'listening') agent.episode([{ face: event.face || 'attentive', anim: event.anim, hold: 1.8 }]) }, Math.max(900, duration - 300))) }
+          else if (event.who === 'agent') { mic.classList.remove('active'); const beat = { face: event.face || 'attentive', hold: Math.max(2.6, duration / 1000), ...(event.anim ? { anim: event.anim } : {}) }; typeSTT(reply, event.text, token, 17, true); agent.episode([beat]) }
+          else { mic.classList.remove('active'); const beat = { face: event.face || 'neutral', hold: Math.max(1.2, duration / 1000), ...(event.anim ? { anim: event.anim } : {}) }; agent.episode([beat]); if (event.action === 'browse') { browserStatus.classList.add('visible'); typeSTT(browserStatus, 'Browsing the web…', token, 46); timers.push(setTimeout(() => { if (token === runToken) browserStatus.classList.remove('visible') }, duration - 250)) } }
+        })
+        cursor += duration + 420
+      })
+    }
+    function startCall() {
+      const layout = document.querySelector('.workspace-layout'); if (layout.classList.contains('call-mode')) return
+      const token = runToken; $('call-button').classList.add('active'); layout.classList.add('call-mode'); $('call-mote-target').appendChild(agent.el); agent.idle()
+      agent.el.animate([{ opacity: 0, transform: 'scale(.94)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 1250, easing: 'cubic-bezier(.22,.8,.3,1)', fill: 'both' })
+      timers.push(setTimeout(() => { if (token === runToken) runCall(token) }, 1450))
+    }
+    function runDemo() {
+      clearRun(); const token = runToken; agent.idle(); $('run-badge').className = 'run-badge running'; $('run-badge').querySelector('span').textContent = 'In progress'; $('agent-state').textContent = 'Waiting for message'
+      scriptedPrompt.split('').forEach((char, index) => timers.push(setTimeout(() => { if (token !== runToken) return; const box = $('composer'); box.value += char; box.style.height = 'auto'; box.style.height = `${box.scrollHeight}px` }, 500 + index * 32)))
+      timers.push(setTimeout(() => { if (token !== runToken) return; addUserMessage(scriptedPrompt); $('composer').value = ''; $('composer').style.height = ''; setStep(0); $('agent-state').textContent = 'Listening'; agent.listening() }, 4300))
+      scenario.forEach((event, index) => timers.push(setTimeout(() => {
+        if (token !== runToken) return
+        setStep(event.step, event.finish); $('agent-state').textContent = event.state
+        performEvent(agent, event)
+        if (event.message) addAssistantMessage(event.message, token, event)
+        if (event.thinking) addThinking(event)
+        if (event.tool) addTool(event.tool, event.toolSuccess)
+        if (event.finish) { $('run-badge').className = 'run-badge success'; $('run-badge').querySelector('span').textContent = 'Complete'; timers.push(setTimeout(startCall, 4600)) }
+      }, (5200 + index * 3200) * 1.05)))
+    }
+
+    function launchDemo() {
+      modeScreen.classList.remove('active'); workflow.classList.add('active'); $('agent-name').textContent = pendingName
+      document.querySelector('.workflow').style.setProperty('--agent-color', selectedPaint)
+      agent = Mote.mount($('agent-mote'), { name: pendingName, body: selectedBody, paint: selectedPaint, theme: moteTheme, ambient: true }); mountedMotes.push(agent)
+      agent.pointer(1, 0)
+      window.scrollTo({ top: 0, behavior: 'smooth' }); startCall()
+    }
+    $('maker-form').addEventListener('submit', (event) => {
+      event.preventDefault(); pendingName = $('name').value.trim() || 'Patch'
+      maker.destroy(); builder.classList.remove('active'); launchDemo()
+    })
+    $('replay').addEventListener('click', () => location.reload())
+    $('call-button').addEventListener('click', startCall)
+  </script>
+</body>
+</html>
