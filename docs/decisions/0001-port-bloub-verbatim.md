@@ -91,6 +91,7 @@ upstream stays legible.
 - `src/lib/geometry.js`
 - `src/bodies/shapes.js`
 - `src/bodies/palette.js`
+- `src/creature/gaze.js`
 - `test/shapes.test.mjs`
 - `test/expressions.test.mjs`
 - `NOTICE`

@@ -4,8 +4,9 @@ const previewHost = document.getElementById("preview");
 const nameInput = document.getElementById("name");
 const givenEl = document.getElementById("given");
 
-const draft = { body: BODIES[0], paint: PAINTS[0][1] };
-const preview = makeStage(previewHost, { decorative: true });
+/* ADR 0011: the maker edits the same sun object carried by the public skin. */
+const draft = { body: BODIES[0], paint: PAINTS[0][1], sun: sunOptions() };
+const preview = makeStage(previewHost, { decorative: true, theme: DEMO_THEME });
 
 /* The preview and every tile are the real renderer holding a still pose, so
    what you pick is exactly what you get. */
@@ -72,18 +73,38 @@ const tiles = BODIES.map((b) => {
   btn.setAttribute("aria-label", b.label);
   btn.title = b.label;
   btn.setAttribute("aria-pressed", String(b === draft.body));
-  const st = makeStage(btn, { decorative: true });
+  const st = makeStage(btn, { decorative: true, theme: DEMO_THEME });
   const paint = () => drawStage(st, { ...STILL, body: b, paint: draft.paint });
   paint();
   btn.addEventListener("click", () => {
     draft.body = b;
-    morphBody(sprout, b, sprout.t);
+    morphBody(sprout, b.id === "sun" ? makeSunBody(draft.sun) : b, sprout.t);
     tiles.forEach((tb) => tb.btn.setAttribute("aria-pressed", String(tb.body === b)));
+    sunControls.hidden = b.id !== "sun";
     drawPreview();
   });
   shapesEl.appendChild(btn);
-  return { btn, body: b, paint };
+  return { btn, body: b, paint, stage: st };
 });
+
+const sunControls = document.getElementById("sun-controls");
+const sunInputs = [...sunControls.querySelectorAll("input")];
+function syncSunControls() {
+  for (const input of sunInputs) input.value = draft.sun[input.name];
+  sunControls.hidden = draft.body.id !== "sun";
+}
+sunInputs.forEach((input) => input.addEventListener("input", () => {
+  draft.sun = sunOptions({ ...draft.sun, [input.name]: Number(input.value) });
+  const body = makeSunBody(draft.sun);
+  draft.body = BODY_BY_ID.sun;
+  /* Petal sliders edit one body; treating each input event as a body change
+     collapses unlike ray profiles through the core before they settle. */
+  sprout.body = body;
+  sprout.bodyFrom = null;
+  sprout.bodyAt = sprout.t;
+  drawPreview();
+}));
+syncSunControls();
 
 const coloursEl = document.getElementById("colours");
 const dots = PAINTS.map(([name, hex]) => {
@@ -102,6 +123,12 @@ const dots = PAINTS.map(([name, hex]) => {
 });
 
 drawPreview();
+
+window.addEventListener("mote-theme", (event) => {
+  preview.theme = event.detail;
+  tiles.forEach((tile) => { tile.stage.theme = event.detail; tile.paint(); });
+  drawPreview();
+});
 
 const backBtn = document.getElementById("back");
 const hatchBtn = document.getElementById("hatch");
@@ -146,12 +173,13 @@ function hatch() {
   const first = !hasHatched;
   hasHatched = true;
   const name = (nameInput.value || "").trim() || "Mote";
-  avatar.setSkin({ body: draft.body.id, paint: draft.paint, name });
+  avatar.setSkin({ body: draft.body.id, paint: draft.paint, name, sun: draft.sun });
+  refreshCatalogues();
   givenEl.textContent = name;
   document.title = name;
   makeView.classList.remove("on");
   liveView.classList.add("on");
-  try { localStorage.setItem("mote", JSON.stringify({ body: draft.body.id, paint: draft.paint, name })); } catch {}
+  try { localStorage.setItem("mote", JSON.stringify({ body: draft.body.id, paint: draft.paint, name, sun: draft.sun })); } catch {}
 
   if (!first) return;   // coming back from an edit: do not re-introduce it
 
@@ -166,7 +194,7 @@ document.getElementById("change").addEventListener("click", openMaker);
 backBtn.addEventListener("click", () => {
   /* Abandoning an edit puts back what he actually is, not the half-made draft. */
   const was = avatar.skin();
-  draft.body = BODY_BY_ID[was.body]; draft.paint = was.paint;
+  draft.body = BODY_BY_ID[was.body]; draft.paint = was.paint; draft.sun = sunOptions(was.sun);
   nameInput.value = was.name;
   syncPickers();
   makeView.classList.remove("on");
@@ -179,6 +207,7 @@ function syncPickers() {
   sprout.body = draft.body; sprout.bodyFrom = null;
   tiles.forEach((tb) => { tb.btn.setAttribute("aria-pressed", String(tb.body === draft.body)); tb.paint(); });
   dots.forEach((d, i) => d.setAttribute("aria-pressed", String(PAINTS[i][1] === draft.paint)));
+  syncSunControls();
   refreshTemper();
   drawPreview();
 }
@@ -189,6 +218,7 @@ try {
   if (saved && BODY_BY_ID[saved.body]) {
     draft.body = BODY_BY_ID[saved.body];
     draft.paint = saved.paint;
+    draft.sun = sunOptions(saved.sun);
     nameInput.value = saved.name || "";
     syncPickers();
     hatch();
@@ -196,4 +226,3 @@ try {
 } catch {}
 
 requestAnimationFrame(frame);
-

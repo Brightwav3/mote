@@ -57,7 +57,6 @@ function makeStage(host, opts = {}) {
   });
   add(mask, "rect", { x: "-150", y: "-150", width: "300", height: "300", fill: "#fff" });
   const notch = add(mask, "circle", { r: "0", fill: "#000" });
-
   const wrap = add(svg, "g");
   const arcsBack = add(wrap, "g");
   const dotsBack = add(wrap, "g");
@@ -66,14 +65,14 @@ function makeStage(host, opts = {}) {
   const eyes = [0, 1].map(() => {
     const outer = add(wrap, "g");
     const inner = add(outer, "g");
-    return { outer, inner, rect: add(inner, "rect", { rx: "9" }) };
+    return { outer, inner, rect: add(inner, "rect", { rx: "9", "data-mote-eye": "true" }) };
   });
   const arcsFront = add(wrap, "g");
   const dotsFront = add(wrap, "g");
   const pip = add(wrap, "circle", { r: "0", fill: NOTIF_BLUE });
 
   return {
-    uid, svg, defs, notch, pip,
+    uid, svg, defs, notch, pip, theme: opts.theme || "light",
     arcsBack, arcsFront, dotsBack, dotsFront,
     wrap, bodyG, body, eyes,
     dotPool: [], arcPool: new Map(),
@@ -131,9 +130,11 @@ function drawStage(st, pose) {
   if (pose.sil) {
     st.body.setAttribute("d", silPath(pose.sil, R));
     st.shownBody = null;
-  } else if (st.shownBody !== pose.body.id) {
+  } else if (st.shownBody !== pose.body) {
     st.body.setAttribute("d", profilePath(pose.body, R));
-    st.shownBody = pose.body.id;
+    /* ADR 0011: editable Sun profiles share the public id `sun`, so identity
+       here must be the immutable body object rather than its catalogue id. */
+    st.shownBody = pose.body;
   }
   st.body.setAttribute("fill", pose.paint);
   st.wrap.setAttribute("transform", `translate(${r2(pose.x)},${r2(pose.y)})`);
@@ -149,15 +150,34 @@ function drawStage(st, pose) {
      docs/decisions/0010-eye-containment-solved-not-authored.md */
   const fit = eyeFitFor(pose.sil ? pose.sil.radii : pose.body.profile,
                         frames, pose.eyes, R);
-  const ink = eyeInkFor(pose.paint);
-  const alpha = pose.eyeAlpha === undefined ? 1 : pose.eyeAlpha;
+  /* ADR 0012: theme belongs to the host surface, not to a body colour. */
+  const ink = eyeInkFor(pose.paint, pose.theme || st.theme);
+  /* Animations use `eyeAlpha: 0` when the creature stops being a creature —
+     a burst, a comet, the "!" bar. There is no face on those shapes, so the
+     eyes go entirely rather than hanging on at a floor: a pair of eyes on a
+     comet reads as a bug, not as identity. The identity is carried by the
+     paint and the silhouette for those two seconds, and the animation ramps
+     the alpha back up as the body returns. A blink is a separate lid
+     transform and remains fully intact. */
+  const alpha = pose.eyeAlpha === undefined ? 1 : clamp(pose.eyeAlpha, 0, 1);
+  /* ADR 0017: body transforms carry facial anchors.
+     docs/decisions/0017-body-transforms-carry-facial-anchors.md
+
+     A posed silhouette can stretch, rotate, or travel. Its eyes belong to
+     that material, so their centres follow the same transform instead of
+     remaining pinned to the stage while the body moves around them. */
+  const sil = pose.sil || { sx: 1, sy: 1, rot: 0, cx: 0, cy: 0 };
+  const cr = Math.cos(sil.rot || 0), sr = Math.sin(sil.rot || 0);
   frames.forEach((p, i) => {
     const n = st.eyes[i];
     const e = pose.eyes[i];
     const w = e.w * R * fit, h = e.h * R * fit;
     const lidScale = 0.06 + 0.94 * clamp(e.open * pose.blinkLid);
+    const ex = p.x * fit * (sil.sx ?? 1), ey = p.y * fit * (sil.sy ?? 1);
+    const tx = ex * cr - ey * sr + (sil.cx || 0) * R;
+    const ty = ex * sr + ey * cr + (sil.cy || 0) * R;
     n.outer.setAttribute("transform",
-      `translate(${r2(p.x * fit)},${r2(p.y * fit)}) scale(1,${r2(lidScale)})`);
+      `translate(${r2(tx)},${r2(ty)}) scale(1,${r2(lidScale)})`);
     n.inner.setAttribute("transform",
       `matrix(${r2(p.a)},${r2(p.b)},${r2(p.c)},${r2(p.d)},0,0) rotate(${r2(e.tilt)})`);
     n.rect.setAttribute("x", r2(-w / 2)); n.rect.setAttribute("y", r2(-h / 2));

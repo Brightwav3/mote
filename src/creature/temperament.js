@@ -34,6 +34,8 @@ function temperamentFor(name) {
    Scold it and it is subdued for minutes afterwards, so the NEXT thing you do
    lands differently. Nothing on screen reports this; you just notice that it
    has been in a funny mood since you shouted at it.                        */
+/* ADR 0013: mood residue is deposited on events, not integrated from springs.
+   docs/decisions/0013-mood-residue-is-deposited-on-events.md */
 class Mood {
   constructor() { this.v = 0; this.a = 0; this.d = 0; }
 

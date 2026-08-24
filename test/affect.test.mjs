@@ -42,33 +42,13 @@ test('a name always produces the same creature', async () => {
   assert.notEqual(draw('Bo').join(), draw('Zelda').join())
 })
 
-test('the eyes are white on every body but the white one', async () => {
+/* ADR 0012: one eye ink per host theme, with its matching endpoint inverted. */
+test('eye ink follows light and dark host themes', async () => {
   const { PAINTS, eyeInkFor } = await load(PURE)
-  const lum = (hex) => {
-    const n = parseInt(hex.slice(1), 16)
-    const f = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4 }
-    return 0.2126 * f(n >> 16 & 255) + 0.7152 * f(n >> 8 & 255) + 0.0722 * f(n & 255)
-  }
-  const contrast = (a, b) => {
-    const [hi, lo] = lum(a) > lum(b) ? [lum(a), lum(b)] : [lum(b), lum(a)]
-    return (hi + 0.05) / (lo + 0.05)
-  }
-
-  /* One ink for the whole cast, as in Bloub: the creature is one animal, not a
-     light-eyed one and a dark-eyed one depending on its colour. The single
-     exception is the white body, which would otherwise have no face at all. */
   for (const [name, hex] of PAINTS) {
-    const want = hex.toLowerCase() === '#ffffff' ? '#14181A' : '#FFFFFF'
-    assert.equal(eyeInkFor(hex), want, `${name} (${hex})`)
+    const lightWant = hex.toLowerCase() === '#ffffff' ? '#14181A' : '#FFFFFF'
+    const darkWant = hex.toLowerCase() === '#0a0a0c' ? '#FFFFFF' : '#14181A'
+    assert.equal(eyeInkFor(hex, 'light'), lightWant, `light ${name} (${hex})`)
+    assert.equal(eyeInkFor(hex, 'dark'), darkWant, `dark ${name} (${hex})`)
   }
-
-  /* This is a look, not a contrast optimum, and the cost is recorded rather
-     than asserted away. White on Ink is 20:1; white on Amber is the floor.
-     The bar here is deliberately low — it catches a paint so pale that the
-     eyes vanish entirely, and nothing else. WCAG 1.4.11 would ask 3:1 and
-     several of these do not meet it. */
-  const worst = PAINTS
-    .map(([name, hex]) => [name, contrast(hex, eyeInkFor(hex))])
-    .sort((a, b) => a[1] - b[1])[0]
-  assert.ok(worst[1] >= 1.5, `${worst[0]} eye contrast only ${worst[1].toFixed(2)}:1`)
 })

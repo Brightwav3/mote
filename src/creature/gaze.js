@@ -54,7 +54,10 @@ class Gaze {
 }
 
 
-/* ── BODIES ───────────────────────────────────────────────────────────────
+/* ADR 0001: these generators are faithful Bloub ports, not approximations.
+   docs/decisions/0001-port-bloub-verbatim.md
+
+   ── BODIES ───────────────────────────────────────────────────────────────
    Ported from Bloub's `shape.ts` / `skins.ts`, function for function, rather
    than reimplemented. My own versions were close in spirit and wrong in every
    particular: 240 samples instead of 64, corners rounded by a p-norm soft

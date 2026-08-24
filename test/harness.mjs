@@ -32,6 +32,7 @@ export async function load(parts) {
   vm.runInContext(code + '\n;globalThis.__exports = { ' +
     'clamp, lerp, rad, rnd, noise, createRng, eyeFrames, FACES, poseOf, lerpPose, ' +
     'expressionFor, faceDistance, CROSSFADE, Spring, BODIES, BODY_BY_ID, PROFILE_SAMPLES, ' +
+    'makeSunBody, sunOptions, SUN_DEFAULTS, ' +
     'eyeInkFor, PAINTS, EASE, poseSil, circleSil, blendSil, silPath, ' +
     'eyeFitFor, radiusAt, EYE_LIMIT, EYE_FIT_FLOOR, gazeOf' + anim + ' };', sandbox)
   return sandbox.__exports

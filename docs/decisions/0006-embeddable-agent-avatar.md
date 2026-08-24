@@ -16,7 +16,7 @@ line wrote to an element the creature had looked up itself. Every one of those
 is the demo leaking into the animal.
 
 The second problem is worse and less obvious. Even with the DOM removed, the
-natural API is the creature's own: seventeen faces, fourteen animations, a
+natural API is the creature's own: seventeen faces, twenty-five animations, a
 valence/arousal/dominance triple. That is a real API and it is the wrong one.
 An integrator has an agent, not a mood. Handing them `react("shy", 3.2)` and a
 list of French expression names asks them to design the avatar — which is

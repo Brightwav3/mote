@@ -12,19 +12,35 @@
    test/agent.test.mjs checks that the twelve agent states stay in step, but
    nothing checks the rest of this file. */
 
-/** One of the fourteen animations from the catalogue. */
+/** One of the animations from the catalogue. */
 export type MoteAnimation =
   | 'idle' | 'thinking' | 'wink' | 'wide' | 'alert' | 'notify' | 'exclaim'
   | 'sleep' | 'egg' | 'hexagon' | 'play' | 'orbit' | 'burst' | 'comet'
+  | 'nod' | 'nope' | 'listening' | 'peek' | 'focus' | 'celebrate'
+  | 'charge' | 'glitch' | 'melt' | 'portal' | 'magnet'
 
-/** One of the eight silhouettes. */
+/** One of the nine silhouettes. */
 export type MoteBody =
   | 'cercle' | 'galet' | 'squircle' | 'capsule'
-  | 'triangle' | 'hexagone' | 'nuage' | 'goutte'
+  | 'triangle' | 'hexagone' | 'nuage' | 'goutte' | 'sun'
+
+/** ADR 0011: editable geometry for the Sun body. Values outside these ranges are clamped. */
+export interface MoteSun {
+  /** Petal radius relative to the core: 0.14–0.34. */
+  size?: number
+  /** Number of petals: integer 5–12. */
+  count?: number
+  /** Petal-centre distance relative to the core: 0.9–1.18. */
+  distance?: number
+  /** Clockwise rotation in degrees. */
+  rotation?: number
+}
 
 /** Where its attention goes. `viewer` fixates on where the pointer was when
  *  you called — it is not a follow. */
 export type MoteLook = 'about' | 'viewer' | 'away' | 'inward'
+/** ADR 0012: host theme controls eye ink but is not part of a persona. */
+export type MoteTheme = 'light' | 'dark'
 
 export interface MoteSkin {
   /** Silhouette id. */
@@ -33,6 +49,8 @@ export interface MoteSkin {
   paint?: string
   /** Seeds temperament — the same name is always the same animal. */
   name?: string
+  /** Sun petal geometry; retained even while another body is selected. */
+  sun?: MoteSun
 }
 
 /** One beat of a written episode: a face, how long it is held, and
@@ -44,7 +62,7 @@ export interface MoteBeat {
   /** Seconds, greater than 0 and at most 30. Covers exactly until the next
    *  beat begins, so there is no gap to fall through. */
   hold: number
-  /** Play one of the fourteen animations for this beat. A beat that names
+  /** Play one catalogue animation for this beat. A beat that names
    *  none leaves a running animation alone rather than cutting it. */
   anim?: MoteAnimation
   /** Where its attention goes for this beat. */
@@ -88,6 +106,8 @@ export interface MotePersona extends MoteSkin {
 }
 
 export interface MoteMountOptions extends MoteSkin {
+  /** Host colour scheme. Controls the cast-wide eye ink; default `light`. */
+  theme?: MoteTheme
   /** Named scripts this creature carries, played by `episode(name)`. Checked
    *  at mount, so a typo in a config file surfaces when it is loaded. */
   episodes?: Record<string, MoteEpisode>
@@ -100,6 +120,8 @@ export interface MoteMountOptions extends MoteSkin {
 }
 
 export interface MoteSnapshotOptions extends MoteSkin {
+  /** Override eye ink for this copy; defaults to the mounted Mote's theme. */
+  theme?: MoteTheme
   /** Decorative snapshots are static copies and do not own an animation loop. */
   decorative?: boolean
 }
@@ -175,13 +197,16 @@ export interface MoteAvatar {
   // ── the creature directly ───────────────────────────────────────────────
   setSkin(skin: MoteSkin): MoteAvatar
   skin(): Required<MoteSkin>
+  /** Change host theme without changing the creature's portable persona. */
+  setTheme(theme: MoteTheme): MoteAvatar
+  theme(): MoteTheme
   /** Schedule work on this Mote's animation clock. */
   after(seconds: number, fn: () => void): MoteAvatar
   /** ADR 0008-snapshot-boundary: copy a rendered frame for a compact decorative surface. */
   snapshot(host: Element, options?: MoteSnapshotOptions): MoteAvatar
   say(text: string, ms?: number): MoteAvatar
   look(mode?: MoteLook, seconds?: number): MoteAvatar
-  /** Play one of the fourteen animations by id. */
+  /** Play one catalogue animation by id. */
   animate(id: MoteAnimation, hold?: number): MoteAvatar
 
   // ── written episodes ────────────────────────────────────────────────────

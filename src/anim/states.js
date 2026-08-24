@@ -71,6 +71,8 @@ function dotPulse(t, index) {
   return clamp(k * 2);
 }
 
+/* ADR 0015: definitions mark large-field motion explicitly with `big`.
+   docs/decisions/0015-large-field-motion-is-omitted-under-reduced-motion.md */
 const STATES = [
   {
     id: "idle", label: "Idle", duration: 2.4, morph: 0.45,
@@ -124,24 +126,20 @@ const STATES = [
   },
 
   {
-    big: true, id: "alert", label: "Alert", duration: 2.4, minDuration: 2, morph: 0.45,
-    blinkIn: false, baseFace: false, baseBody: false,
+    /* Keep the public `alert` id as a compatibility alias. In the picker this
+       slot is now Writing: the gaze repeatedly scans a short line, drops, and
+       starts again while the chosen body stays recognisable. */
+    id: "alert", label: "Writing", duration: 2.4, minDuration: 2, morph: 0.35,
+    blinkIn: true, baseFace: false, baseBody: true,
     pose: (t) => {
-      // Measured travel: -0.087 to +0.732 in 1.5s, ease-in-out, micro-overshoot.
-      const travel = EASE.inOutCubic(clamp(t / 1.5)) * 0.82 - 0.087;
-      const back = t > 1.6 ? clamp((t - 1.6) / 0.4) : 0;
-      const x = travel * (1 - back) + 0.1 * back;
-      // 2.5Hz secondary buzz, bar and dot in antiphase.
-      const buzz = Math.sin(t * 2.5 * TAU) * 0.005;
-      const tilt = (17.7 * Math.PI) / 180;
+      const line = (t % 0.8) / 0.8;
+      const reset = line > 0.88 ? (line - 0.88) / 0.12 : 0;
+      const yaw = -18 + line * 34 - reset * 34;
+      const bob = Math.sin(t * 5 * TAU) * 1.4;
       return baseState({
-        sil: barItalic({ rot: tilt, cx: x, cy: -0.325 - buzz }),
-        eyeAlpha: 0,
-        dots: [{
-          x: x - Math.sin(tilt) * 0.58,
-          y: -0.325 + Math.cos(tilt) * 0.58 + buzz * 2.8,
-          r: 0.118, d: TEAR, rot: (tilt * 180) / Math.PI, opacity: 1,
-        }],
+        gaze: { yaw, pitch: 18 + bob, roll: -4 },
+        split: 15.5,
+        eyes: pair(0.29, 0.32),
       });
     },
   },
@@ -284,6 +282,138 @@ const STATES = [
     },
   },
 ];
+
+/* Original Mote choreography. Unlike the fourteen measured Bloub states
+   above, these deliberately keep the chosen body and move it through the
+   transform channels that `poseOfState` composes onto the resting profile. */
+const beat = (t, duration) => clamp(t / duration);
+const pulse01 = (t) => 0.5 - 0.5 * Math.cos(clamp(t) * TAU);
+
+STATES.push(
+  {
+    id: "nod", label: "Nod", duration: 1.25, morph: 0.2,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.25) * Math.PI * 2) * Math.sin(beat(t, 1.25) * Math.PI);
+      return baseState({ sil: circleSil(1, { cy: k * 0.13, sy: 1 - Math.max(0, k) * 0.06 }),
+        gaze: { yaw: 0, pitch: 8 + k * 24, roll: 0 }, eyes: pair(0.24, 0.4) });
+    },
+  },
+  {
+    id: "nope", label: "Nope", duration: 1.15, morph: 0.18,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const fade = Math.sin(beat(t, 1.15) * Math.PI);
+      return baseState({ gaze: { yaw: Math.sin(t * TAU * 3.2) * 34 * fade, pitch: 0, roll: 0 },
+        eyes: pair(0.23, 0.4) });
+    },
+  },
+  {
+    id: "listening", label: "Listening", duration: 1.8, morph: 0.25,
+    blinkIn: true, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.8) * Math.PI);
+      return baseState({ sil: circleSil(1, { rot: -0.13 * k, cx: -0.06 * k }),
+        gaze: { yaw: -28 * k, pitch: -4, roll: -10 * k }, split: 17,
+        eyes: [eye(0.34 + 0.13 * k, 0.46 + 0.12 * k), eye(0.23, 0.4)] });
+    },
+  },
+  {
+    id: "peek", label: "Peek", duration: 1.55, morph: 0.22,
+    blinkIn: true, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.55) * Math.PI);
+      return baseState({ gaze: { yaw: 64 * k, pitch: -3, roll: 8 * k }, split: 13,
+        eyes: pair(0.22, 0.42), eyeAlpha: clamp(k * 4) });
+    },
+  },
+  {
+    id: "focus", label: "Focus", duration: 1.65, morph: 0.24,
+    blinkIn: true, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = EASE.inOutCubic(Math.sin(beat(t, 1.65) * Math.PI));
+      return baseState({ gaze: { yaw: 0, pitch: 0, roll: 0 }, split: 16 - 6 * k,
+        eyes: pair(0.25 + 0.05 * k, 0.42 - 0.27 * k) });
+    },
+  },
+  {
+    big: true, id: "celebrate", label: "Celebrate", duration: 1.8, morph: 0.2,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const p = beat(t, 1.8), jump = Math.sin(p * Math.PI) * Math.sin(p * Math.PI * 3);
+      const pop = pulse01(clamp(t / 0.7));
+      return baseState({ sil: circleSil(1, { cy: -Math.max(0, jump) * 0.34, sy: 1 + Math.max(0, jump) * 0.08 }),
+        gaze: { yaw: 0, pitch: -14, roll: 0 }, split: 19, eyes: pair(0.36, 0.48),
+        dots: Array.from({ length: 8 }, (_, i) => ({ x: Math.cos(i * TAU / 8) * (0.75 + pop * 0.5),
+          y: Math.sin(i * TAU / 8) * (0.75 + pop * 0.5), r: 0.055 + 0.025 * pop,
+          opacity: Math.sin(p * Math.PI) })) });
+    },
+  },
+  {
+    big: true, id: "charge", label: "Charge", duration: 2, morph: 0.28,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const p = beat(t, 2), k = Math.sin(p * Math.PI), buzz = Math.sin(t * 34) * k;
+      return baseState({ sil: circleSil(1, { cx: buzz * 0.018, sx: 1 + k * 0.18, sy: 1 - k * 0.25 }),
+        gaze: { yaw: 0, pitch: 8, roll: 0 }, split: 13, eyes: pair(0.31, 0.16 + 0.1 * (1 - k)),
+        dots: Array.from({ length: 6 }, (_, i) => ({ x: Math.cos(i * TAU / 6 + t) * (1.3 - k * 0.55),
+          y: Math.sin(i * TAU / 6 + t) * (1.3 - k * 0.55), r: 0.045, opacity: k })) });
+    },
+  },
+  {
+    id: "glitch", label: "Glitch", duration: 1.35, morph: 0.08,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const active = Math.sin(beat(t, 1.35) * Math.PI);
+      const snap = Math.sin(Math.floor(t * 18) * 12.9898) * active;
+      return baseState({ sil: circleSil(1, { cx: snap * 0.12, sx: 1 + Math.abs(snap) * 0.08 }),
+        gaze: { yaw: snap * 42, pitch: snap * 9, roll: snap * 8 }, split: 17 + snap * 5,
+        eyes: [eye(0.27, 0.39), eye(0.27, 0.39)],
+        dots: [-0.45, 0, 0.45].map((y, i) => ({ x: -snap * (0.45 + i * 0.12), y,
+          r: 0.035 + i * 0.01, opacity: active })) });
+    },
+  },
+  {
+    big: true, id: "melt", label: "Puddle", duration: 2.25, morph: 0.35,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 2.25) * Math.PI);
+      return baseState({ sil: circleSil(1, { cy: 0.48 * k, sx: 1 + 0.46 * k, sy: 1 - 0.68 * k }),
+        gaze: { yaw: 0, pitch: 24 * k, roll: 0 }, split: 17,
+        eyes: pair(0.26 + 0.1 * k, 0.4 - 0.26 * k) });
+    },
+  },
+  {
+    big: true, id: "portal", label: "Portal", duration: 2.4, morph: 0.3,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const p = beat(t, 2.4);
+      const out = EASE.inOutCubic(clamp(p / 0.24));
+      const inside = p >= 0.24 && p < 0.62;
+      const back = EASE.outCubic(clamp((p - 0.62) / 0.25));
+      const scale = inside ? 0.015 : p < 0.62 ? 1 - out * 0.985 : 0.015 + back * 0.985;
+      const cx = p < 0.62 ? -0.56 * out : 0.56 * (1 - back);
+      const portalX = p < 0.5 ? -0.56 : 0.56;
+      const ringOpacity = Math.sin(p * Math.PI);
+      return baseState({ sil: circleSil(1, { sx: scale, sy: scale, cx, rot: t * 5 }),
+        gaze: { yaw: p < 0.62 ? -35 : 35, pitch: 0, roll: t * 22 }, eyes: pair(0.22, 0.4),
+        eyeAlpha: p < 0.62 ? 1 - clamp(p / 0.14) : clamp((p - 0.68) / 0.1),
+        arcs: RINGS.slice(0, 3).map((s, i) => ({ id: `pt${i}`,
+          seed: { ...s, a: 0.58 + i * 0.13, k: 0.12, cx: portalX }, t,
+          opacity: ringOpacity })) });
+    },
+  },
+  {
+    id: "magnet", label: "Magnet", duration: 1.9, morph: 0.26,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.9) * Math.PI);
+      return baseState({ sil: circleSil(1, { cx: 0.28 * k, sx: 1 + 0.34 * k, sy: 1 - 0.09 * k }),
+        gaze: { yaw: 58 * k, pitch: -4, roll: 4 * k }, split: 15 - 3 * k,
+        eyes: [eye(0.25 + 0.08 * k, 0.42), eye(0.25 + 0.15 * k, 0.42)] });
+    },
+  },
+);
 
 const STATE_BY_ID = Object.fromEntries(STATES.map((s) => [s.id, s]));
 /* Reading order of the full sequence, as cut in the reference video. */

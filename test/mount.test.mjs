@@ -74,7 +74,7 @@ function makeNode(tag) {
   }
 }
 
-async function mountInStub() {
+async function mountInStub({ random } = {}) {
   const manifest = JSON.parse(await readFile(join(root, 'src', 'manifest.json'), 'utf8'))
   const core = manifest.filter((p) => !p.startsWith('app/'))
   const code = (await Promise.all(
@@ -82,8 +82,9 @@ async function mountInStub() {
   )).join('\n')
 
   let raf = 0
+  const testMath = random === undefined ? Math : Object.assign(Object.create(Math), { random })
   const sandbox = {
-    Math, JSON, Array, Object, Number, String, Boolean, Map, Set, Error, console,
+    Math: testMath, JSON, Array, Object, Number, String, Boolean, Map, Set, Error, console,
     document: { createElementNS: (_ns, tag) => makeNode(tag) },
     performance: { now: () => 0 },
     requestAnimationFrame: () => ++raf,
@@ -147,6 +148,21 @@ test('it mounts, draws, and keeps drawing', async () => {
   avatar.destroy()
 })
 
+/* ADR 0012: theme is mutable host context and never portable persona data. */
+test('host theme changes eye ink without changing the skin', async () => {
+  const { Mote, host } = await mountInStub()
+  const avatar = Mote.mount(host, { manual: true, paint: '#e8483f', theme: 'light' })
+  const eyes = host.firstChild.all().filter((n) => n.tagName === 'rect' && n.getAttribute('rx') !== null)
+  assert.ok(eyes.every((eye) => eye.getAttribute('fill') === '#FFFFFF'))
+  avatar.setTheme('dark')
+  run(avatar, 0.02)
+  assert.ok(eyes.every((eye) => eye.getAttribute('fill') === '#14181A'))
+  assert.equal(avatar.theme(), 'dark')
+  assert.equal(avatar.skin().paint, '#e8483f')
+  assert.equal('theme' in avatar.persona(), false, 'host theme leaked into the portable persona')
+  avatar.destroy()
+})
+
 test('multiple mounted Motes keep independent lives and teardown', async () => {
   const { Mote, host } = await mountInStub()
   const secondHost = makeNode('div')
@@ -191,6 +207,64 @@ test('compact mounted Motes keep a calm, fixed eye pair while status stays alive
   run(avatar, 6, 4000)
   assert.deepEqual(eyeRects(), first, 'compact eyes changed while the status episode was running')
   assert.equal(avatar.state().name, 'thinking')
+  avatar.destroy()
+})
+
+/* The states that stop being a creature — the body is replaced by a symbol or
+   collapsed to a dot — take the eyes with them. Everything else keeps a face
+   on. Both halves matter: a comet with eyes reads as a bug, and a state that
+   lost its face for no reason reads as a dead avatar. */
+const FACELESS_STATES = ['thinking', 'exclaim', 'sleep', 'burst', 'comet', 'portal']
+
+test('animated Motes show a face in every state that has one, and none in the rest', async () => {
+  const { Mote, host } = await mountInStub()
+  const avatar = Mote.mount(host, { manual: true, name: 'Animated' })
+  const eyeOpacity = () => host.firstChild.all()
+    .filter((n) => n.tagName === 'rect' && n.getAttribute('data-mote-eye') === 'true')
+    .map((n) => Number(n.parentNode?.parentNode?.getAttribute('opacity')))
+
+  for (const { id } of Mote.states()) {
+    avatar.animate(id)
+    run(avatar, 0.8)
+    assert.equal(eyeOpacity().length, 2, `${id} did not render two eyes`)
+    if (FACELESS_STATES.includes(id)) {
+      assert.ok(eyeOpacity().every((opacity) => opacity === 0), `${id} kept its eyes on a symbol`)
+    } else {
+      assert.ok(eyeOpacity().every((opacity) => opacity > 0), `${id} hid an eye`)
+    }
+  }
+  avatar.destroy()
+})
+
+test('a decorative Mote does not fall asleep on its own', async () => {
+  const { Mote, host } = await mountInStub()
+  const avatar = Mote.mount(host, { manual: true, name: 'Roster', decorative: true })
+  run(avatar, 90)
+  assert.notEqual(avatar.state().name, 'asleep')
+  /* Put under deliberately, it still sleeps. */
+  avatar.asleep()
+  run(avatar, 1)
+  assert.equal(avatar.state().name, 'asleep')
+  avatar.destroy()
+})
+
+test('ambient animation scheduling continues after the creature becomes sleepy', async () => {
+  const { Mote, host } = await mountInStub({ random: () => 0 })
+  const avatar = Mote.mount(host, { manual: true, name: 'Persistent' })
+  const animationId = () => host.firstChild.getAttribute('data-mote-animation')
+
+  run(avatar, 23.9)
+  run(avatar, 0.4, 23900)
+  run(avatar, 25.8, 24300)
+  run(avatar, 0.4, 50100)
+  run(avatar, 25.6, 50500)
+  const beforeSleepyAnimation = animationId()
+  run(avatar, 3.5, 76100)
+  const afterSleepyAnimation = animationId()
+
+  assert.equal(beforeSleepyAnimation, '', 'test did not reach the quiet sleepy interval')
+  assert.ok(afterSleepyAnimation,
+    'ambient animation stopped after the creature became sleepy')
   avatar.destroy()
 })
 
@@ -284,6 +358,29 @@ test('changing body morphs rather than swaps', async () => {
   const settled = body.getAttribute('d')
   t = run(avatar, 0.5, t)
   assert.equal(body.getAttribute('d'), settled, 'the body never stopped moving')
+  avatar.destroy()
+})
+
+test('sun petal settings survive skin and persona round trips', async () => {
+  const { Mote, host } = await mountInStub()
+  const sun = { size: 0.3, count: 6, distance: 1.12, rotation: 27 }
+  const avatar = Mote.mount(host, { manual: true, body: 'sun', sun })
+  assert.deepEqual({ ...avatar.skin().sun }, sun)
+  assert.deepEqual({ ...avatar.persona().sun }, sun)
+
+  const body = host.firstChild.all().find((n) => n.getAttribute('data-mote-body') === 'true')
+  const before = body.getAttribute('d')
+  avatar.setSkin({ sun: { rotation: 48 } })
+  run(avatar, 0.02)
+  assert.notEqual(body.getAttribute('d'), before, 'editing petals did not redraw the Sun')
+  const edited = body.getAttribute('d')
+  run(avatar, 0.7)
+  assert.equal(body.getAttribute('d'), edited, 'petal edit incorrectly continued as a body morph')
+  avatar.setSkin({ sun: { count: 11 } })
+  run(avatar, 0.02)
+  assert.notEqual(body.getAttribute('d'), edited,
+    'second petal edit reused the cached path for the public sun id')
+  assert.equal(avatar.skin().sun.rotation, 48)
   avatar.destroy()
 })
 

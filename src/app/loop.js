@@ -11,8 +11,26 @@
 const field = document.getElementById("field");
 const speechEl = document.getElementById("speech");
 const moodEl = document.getElementById("mood");
+/* ADR 0012: the demo passes its host theme through the same public API an
+   embedder uses. */
+let DEMO_THEME = document.documentElement.dataset.theme === "dark" ||
+  (document.documentElement.dataset.theme !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+  ? "dark" : "light";
 
-const avatar = Mote.mount(field, { manual: true });
+const avatar = Mote.mount(field, { manual: true, theme: DEMO_THEME });
+const themeSwitch = document.getElementById("theme-switch");
+function applyDemoTheme(theme) {
+  DEMO_THEME = theme;
+  document.documentElement.dataset.theme = theme;
+  avatar.setTheme(theme);
+  const next = theme === "dark" ? "light" : "dark";
+  themeSwitch.textContent = next === "dark" ? "Dark" : "Light";
+  themeSwitch.setAttribute("aria-label", `Switch to ${next} theme`);
+  themeSwitch.setAttribute("aria-pressed", String(theme === "dark"));
+  window.dispatchEvent(new CustomEvent("mote-theme", { detail: theme }));
+}
+themeSwitch.addEventListener("click", () => applyDemoTheme(DEMO_THEME === "dark" ? "light" : "dark"));
+applyDemoTheme(DEMO_THEME);
 let shownMood = "";
 
 avatar.onSay((text) => {

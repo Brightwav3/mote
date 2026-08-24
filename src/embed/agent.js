@@ -128,6 +128,7 @@ const AGENT_ACTS = {
     epoch++; stopAnim();
     mote.hold = null; mote.episodeUntil = -9;
     mote.lastInput = clock - 52;
+    mote.mode = "asleep"; mote.modeUntil = clock + 999;
     mote.cursor.has = false;
   },
 };
@@ -144,9 +145,16 @@ const AGENT_ACTS = {
    ADR 0009: docs/decisions/0009-multi-instance-agent-avatars.md */
 
 function mountMote(host, opts = {}) {
+  /* ADR 0011: Sun settings travel with skins and personas. Switching bodies
+     morphs; editing petals replaces the current Sun profile directly. */
   if (!host) throw new Error("mote: mount needs an element");
 
-  const stage = makeStage(host, { decorative: opts.decorative === true });
+  const stage = makeStage(host, { decorative: opts.decorative === true, theme: opts.theme });
+  /* A decorative copy is not a session, so it has no quiet to fall asleep
+     into: a roster of avatars nobody points at would otherwise all drop
+     asleep 52 seconds after the page loaded and never wake, because only a
+     pointer or a poke wakes one. `asleep()` still puts it under deliberately. */
+  mote.decorative = opts.decorative === true;
   let running = false;
   let raf = 0;
   let last = 0;
@@ -158,7 +166,16 @@ function mountMote(host, opts = {}) {
        temperament, so the same name is always the same animal. */
     setSkin(next = {}) {
       /* A change of body MORPHS — it does not swap. See `morphBody`. */
-      if (next.body && BODY_BY_ID[next.body]) morphBody(mote, BODY_BY_ID[next.body], clock);
+      const wasSun = mote.body.id === "sun";
+      if (next.sun) mote.sun = sunOptions({ ...mote.sun, ...next.sun });
+      if (next.body && BODY_BY_ID[next.body]) {
+        const body = next.body === "sun" ? makeSunBody(mote.sun) : BODY_BY_ID[next.body];
+        if (wasSun && next.body === "sun" && next.sun) {
+          mote.body = body; mote.bodyFrom = null; mote.bodyAt = clock;
+        } else morphBody(mote, body, clock);
+      } else if (next.sun && mote.body.id === "sun") {
+        mote.body = makeSunBody(mote.sun); mote.bodyFrom = null; mote.bodyAt = clock;
+      }
       if (next.paint) mote.paint = next.paint;
       if (next.name) { mote.name = next.name; mote.temper = temperamentFor(next.name); }
       return api;
@@ -170,7 +187,16 @@ function mountMote(host, opts = {}) {
     look(mode = "about", seconds = 1.4) { look(mode, seconds); return api; },
 
     /* What it currently is. Enough to save and restore one. */
-    skin: () => ({ body: mote.body.id, paint: mote.paint, name: mote.name }),
+    skin: () => ({ body: mote.body.id, paint: mote.paint, name: mote.name, sun: { ...mote.sun } }),
+
+    /* ADR 0012: theme is host context, so it changes eye ink without becoming
+       part of the portable creature persona. */
+    setTheme(theme) {
+      if (theme !== "light" && theme !== "dark") throw new Error('mote: theme must be "light" or "dark"');
+      mote.theme = theme;
+      return api;
+    },
+    theme: () => mote.theme,
 
     /* ADR 0008-snapshot-boundary: Copy the last frame into a decorative host without mounting another
        creature. This is deliberately a rendered SVG snapshot, not a CSS
@@ -206,11 +232,14 @@ function mountMote(host, opts = {}) {
       });
       const bodyNode = nodes.find((node) => node.getAttribute("data-mote-body") === "true");
       if (bodyNode && options.body && BODY_BY_ID[options.body]) {
-        bodyNode.setAttribute("d", profilePath(BODY_BY_ID[options.body], R));
+        const snapshotBody = options.body === "sun" ? makeSunBody(options.sun) : BODY_BY_ID[options.body];
+        bodyNode.setAttribute("d", profilePath(snapshotBody, R));
       }
       if (bodyNode && options.paint) {
         bodyNode.setAttribute("fill", options.paint);
-        const ink = eyeInkFor(options.paint);
+      }
+      if (options.paint || options.theme) {
+        const ink = eyeInkFor(options.paint || mote.paint, options.theme || mote.theme);
         nodes.filter((node) => node.tagName === "rect" && node.getAttribute("rx") !== null)
           .forEach((node) => node.setAttribute("fill", ink));
       }
@@ -256,7 +285,7 @@ function mountMote(host, opts = {}) {
        round trip is the contract: `Mote.mount(host, avatar.persona())` must
        produce the same animal. */
     persona: () => ({
-      name: mote.name, body: mote.body.id, paint: mote.paint,
+      name: mote.name, body: mote.body.id, paint: mote.paint, sun: { ...mote.sun },
       episodes: Object.fromEntries(Object.entries(mote.episodes).map(([k, steps]) => {
         const settings = mote.episodeOpts[k];
         return [k, settings && settings.mode && settings.mode !== "once"
@@ -264,7 +293,7 @@ function mountMote(host, opts = {}) {
       })),
     }),
 
-    /* One of the fourteen, by id, for anyone who wants the vocabulary
+    /* One catalogue animation, by id, for anyone who wants the vocabulary
        directly. */
     animate(id, hold) { playAnim(id, hold); return api; },
     animations: () => STATES.map((s) => ({ id: s.id, label: s.label })),
@@ -277,6 +306,9 @@ function mountMote(host, opts = {}) {
 
     /* A pointer position, in -1..1 across the element, for the rare moments
        it chooses to glance over. Optional: it has a life without one. */
+    /* ADR 0016: pointer updates supply future fixation targets; they do not
+       drag a deliberate glance already in progress.
+       docs/decisions/0016-attention-snapshots-targets-instead-of-tracking.md */
     pointer(x, y) {
       mote.cursor = { x: clamp(x, -1.6, 1.6), y: clamp(y, -1.6, 1.6), has: true };
       mote.lastInput = clock;
@@ -370,6 +402,7 @@ function mountMote(host, opts = {}) {
   }
 
   mote.ambient = opts.ambient !== false;
+  mote.theme = opts.theme === "dark" ? "dark" : "light";
   /* Checked at MOUNT, not at first play. A persona is usually a config file,
      and a typo in one should surface when the config is loaded rather than
      the first time some rare event fires in front of a user. */
@@ -459,6 +492,9 @@ function drawFrame(stage, t, dt) {
      answering it. Null means nothing is playing and nothing is still fading
      out, and the renderer can use the cached body path. */
   const pose = animPose(rest) || rest;
+  /* Keep the current catalogue act observable for embedders and diagnostics;
+     an empty value means the creature is between acts. */
+  stage.svg.setAttribute("data-mote-animation", anim.cur ? anim.cur.def.id : "");
   /* Compact agent rows keep their identity and status choreography, but they
      must not repeatedly lean their eyes toward ambient attention targets. The
      expression and animation channels can still change the face; this final
@@ -477,11 +513,13 @@ function drawFrame(stage, t, dt) {
     body: pose === rest && !bodyMorphing(mote) ? mote.body : undefined,
     sil: pose === rest && !bodyMorphing(mote) ? undefined : pose.sil,
     paint: mote.paint,
+    theme: mote.theme,
     x: gx * 7, y: gy * 5,
     gaze: displayedGaze, split: displayedSplit, eyes: displayedEyes,
     eyeAlpha: mote.ambient ? pose.eyeAlpha : 1,
     blinkLid: mote.ambient ? lidClose : 1,
-    dots: pose.dots, arcs: pose.arcs, notif: pose.notif, dotsBehind: pose.dotsBehind,
+    dots: pose.dots, arcs: pose.arcs, notif: pose.notif,
+    dotsBehind: pose.dotsBehind,
   });
 
   if (mote.onFace) mote.onFace(faceId, settled, MOODLINE[faceId]);

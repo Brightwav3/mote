@@ -130,6 +130,39 @@ const cloud = normalizeProfile(unionOfCirclesProfile([
 const droplet = normalizeProfile(
   profileFromPolygon(hullOfCircles(0, 0.28, 0.66, 0, -0.96, 0.05), 0, 0), 1.04);
 
+/* ADR 0011: Blobatar's sun is adapted as one radial profile so it keeps
+   Mote's renderer, face fitting and morphing. The four authored controls are
+   deliberately body data, not a second decoration layer.
+   docs/decisions/0011-editable-sun-body.md */
+const SUN_DEFAULTS = Object.freeze({ size: 0.23, count: 8, distance: 1.04, rotation: 0 });
+function sunOptions(value = {}) {
+  return {
+    size: clamp(Number(value.size) || SUN_DEFAULTS.size, 0.14, 0.34),
+    count: Math.round(clamp(Number(value.count) || SUN_DEFAULTS.count, 5, 12)),
+    distance: clamp(Number(value.distance) || SUN_DEFAULTS.distance, 0.9, 1.18),
+    rotation: ((Number(value.rotation) || 0) % 360 + 360) % 360,
+  };
+}
+function sunProfile(value) {
+  const p = sunOptions(value);
+  const off = rad(p.rotation);
+  const sizeK = (p.size - 0.14) / 0.2;
+  const distanceK = (p.distance - 0.9) / 0.28;
+  const depth = 0.13 + sizeK * 0.18 + distanceK * 0.14;
+  /* A raised cosine has a flat derivative at both the valley and the tip, so
+     every lobe grows out of the core instead of reading as a circle glued to
+     it. Larger petals are also broader, matching what "size" means by eye. */
+  const roundness = 1.7 - sizeK * 0.75;
+  return normalizeProfile(ANGLES.map((a) => {
+    const wave = 0.5 + 0.5 * Math.cos((a - off) * p.count);
+    return 1 - depth + depth * Math.pow(wave, roundness);
+  }), 1.04);
+}
+function makeSunBody(value) {
+  const sun = sunOptions(value);
+  return { id: "sun", label: "Sun", profile: sunProfile(sun), sun };
+}
+
 /* Capsule lying down: the hull of two discs side by side. Not normalised —
    the original leaves it alone. */
 const capsule = profileFromPolygon(hullOfCircles(-0.42, 0, 0.62, 0.42, 0, 0.62), 0, 0);
@@ -148,6 +181,7 @@ const BODIES = [
   { id: "hexagone", label: "Hexagon", profile: regularPolygonProfile(6, 1.04, 0.26, 0) },
   { id: "nuage", label: "Cloud", profile: cloud },
   { id: "goutte", label: "Droplet", profile: droplet },
+  makeSunBody(SUN_DEFAULTS),
 ];
 const BODY_BY_ID = Object.fromEntries(BODIES.map((b) => [b.id, b]));
 
@@ -160,12 +194,12 @@ const BODY_BY_ID = Object.fromEntries(BODIES.map((b) => [b.id, b]));
    reshape. So it is built once per body and never again; rebuilding it every
    frame was pure waste. */
 const TENSION = 1 / 6;   // Bloub's closedPath tension
-const PATH_CACHE = new Map();
+const PATH_CACHE = new WeakMap();
 function profilePath(body, R) {
-  const hit = PATH_CACHE.get(body.id);
+  const hit = PATH_CACHE.get(body);
   if (hit) return hit;
   const d = buildPath(body.profile, R);
-  PATH_CACHE.set(body.id, d);
+  PATH_CACHE.set(body, d);
   return d;
 }
 

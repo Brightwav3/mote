@@ -14,7 +14,8 @@ function makeMoteState() {
     gaze: new Gaze(),
     ambient: true,
 
-  body: BODIES[0], paint: PAINTS[0][1], name: "Mote",
+  /* ADR 0011: Sun geometry is skin state even when another body is worn. */
+  body: BODIES[0], sun: sunOptions(), paint: PAINTS[0][1], name: "Mote", theme: "light",
   bodyFrom: null, bodyAt: -9,   // a change of body morphs; see morphBody
 
   mode: "about", modeUntil: 0,
@@ -31,6 +32,8 @@ function makeMoteState() {
   episodes: {},
   episodeOpts: {},
   lastInput: clock,
+  /* Set at mount: a decorative copy never falls asleep on its own. */
+  decorative: false,
   cursor: { x: 0, y: 0, has: false },
   lastStim: "", lastStimAt: -99,
 
@@ -143,6 +146,8 @@ const FACE_AT = Object.fromEntries(FACES.map((f) => [f.id, f]));
    feeling. The body kick lands in two beats — a small counter-move, then the
    reaction proper 130ms later — because without anticipation every reaction
    reads as a jump-cut however smoothly it is interpolated. */
+/* ADR 0013: exactly one externally caused opening beat may leave mood residue.
+   docs/decisions/0013-mood-residue-is-deposited-on-events.md */
 function react(faceId, hold, opts = {}) {
   const f = FACE_AT[faceId];
   const n = (opts.kind ? novelty(opts.kind) : 1) * clamp(mote.temper.volatility, 0.4, 1.6);
@@ -185,7 +190,10 @@ function say(text, ms) {
   if (mote.onSay) mote.onSay(text, ms);
 }
 
-/* Looking at you means looking at WHERE YOU WERE when he decided to look.
+/* ADR 0016: deliberate attention snapshots rather than tracks its target.
+   docs/decisions/0016-attention-snapshots-targets-instead-of-tracking.md
+
+   Looking at you means looking at WHERE YOU WERE when he decided to look.
    Re-reading the cursor every frame is tracking, however rarely it starts, and
    the eyes glue to the pointer. Snapshot once; hold the fixation. */
 function look(mode, seconds) {
@@ -229,7 +237,11 @@ function pickPlace(near) {
   mote.placePitch = clamp(mote.placePitch, -24, 26);
 }
 
-/* Things that occur to him, unprompted.
+/* ADR 0014: autonomous thoughts cover the full face repertoire but leave no
+   mood trace.
+   docs/decisions/0014-autonomous-thoughts-cover-the-repertoire-without-mood-trace.md
+
+   Things that occur to him, unprompted.
 
    The first version of this list named six faces, and a measurement over half
    an hour of him alone found the obvious consequence: eight of the seventeen
@@ -306,7 +318,7 @@ function direct(t) {
     mote.dominance.home = mote.restD;
   };
 
-  if (mote.mode !== "asleep" && idle > 52) {
+  if (mote.mode !== "asleep" && idle > 52 && !mote.decorative) {
     mote.mode = "asleep"; mote.modeUntil = t + 999;
     settle(0.05, 0.02, -0.1);
   } else if (mote.mode === "asleep") {

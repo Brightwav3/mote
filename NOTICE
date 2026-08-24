@@ -70,3 +70,15 @@ What is original to Mote
 
 Bloub is itself a study of the x.ai bot avatar's visual behaviour. Neither
 Bloub nor this project is affiliated with or endorsed by x.AI.
+
+Blobatar
+--------
+
+The editable Sun body in src/bodies/shapes.js adapts Blobatar 2's radial-petal
+silhouette concept. Mote expresses the petals as smooth lobes in its own 64-ray
+profile and keeps its own eyes, expressions, fitting, renderer and animation.
+
+  Blobatar — deterministic geometric blobatars
+  Copyright (c) 2026 Alain
+  https://github.com/Alain00/blobatar
+  Licensed under the MIT License; the full text is in LICENSE-BLOBATAR.

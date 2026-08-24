@@ -123,7 +123,7 @@ test('a bad script is refused at the call, naming what is wrong and where', () =
   refused([ok[0], { face: 'nope', hold: 1 }], /beat 1\.face: unknown face "nope"/)
   refused([{ face: 'happy', hold: 0 }], /beat 0\.hold/)
   refused([{ face: 'happy', hold: 1e6 }], /beat 0\.hold/)
-  refused([{ face: 'happy', hold: 1, anim: 'nope' }], /unknown animation/)
+  refused([{ face: 'happy', hold: 1, anim: 'moonwalk' }], /unknown animation/)
   refused([{ face: 'happy', hold: 1, look: ['sideways', 1] }], /look must be/)
   refused([{ face: 'happy', hold: 1, say: 'hello' }], /say must be/)
 

@@ -1,74 +1,113 @@
-/* ── THE DECK ─────────────────────────────────────────────────────────────
-   Nine things an agent does, driven entirely through the PUBLIC API — these
-   are `avatar.thinking()`, `avatar.tool("search")`, `avatar.error(...)` and
-   nothing else. That is the point of the page: if a button here needs to
-   reach past `Mote.mount` to look right, the API is short of something an
-   integrator will need on their first afternoon.
-
-   Nothing here is an agent. There is no model, no tool call and no work — the
-   whole point is the CREATURE, and what an agent's turn gives it is a reason
-   to wear each face in an order that means something. A face sequence with a
-   cause reads as a mind; the same sequence on a button marked "sad" reads as
-   a menu. */
-/* ADR 0004: the face order behind each of these is the specification, and it
-   lives in the act table, not here. docs/decisions/0004-scripted-episodes.md
-   ADR 0006: the demo is an integrator, not an insider.
-   docs/decisions/0006-embeddable-agent-avatar.md
-   ADR 0005: the animation row below plays the ported catalogue.
-   docs/decisions/0005-animation-catalogue.md */
-const ACTS = [
-  ["Give it a task", () => { avatar.listening(); avatar.after(1.0, () => avatar.thinking()); }],
-  ["Call a tool", () => avatar.tool("search")],
-  ["Stream a reply", () => avatar.speaking("here is what I found.", 2600)],
-  ["Finish the turn", () => avatar.done()],
-  ["Ask for permission", () => avatar.needsInput("may I?")],
-  ["Hit an error", () => avatar.error("...that was me.")],
-  ["Interrupt it", () => avatar.interrupted()],
-  ["Background result", () => avatar.notify()],
-  ["Ship the big one", () => avatar.shipped()],
-  ["Leave it be", () => avatar.asleep()],
+/* The live page is the two Bloub catalogues made tangible: still expressions
+   and measured animation states, each drawn by Mote's real renderer with the
+   current skin and host theme. ADR 0001 and ADR 0005 keep those source values
+   pinned to Bloub; ADR 0004 supplies expression episodes and ADR 0006 the
+   public avatar controls used here. See docs/decisions/0004-scripted-episodes.md,
+   docs/decisions/0005-animation-catalogue.md, and
+   docs/decisions/0006-embeddable-agent-avatar.md. */
+const EXPRESSION_ORDER = [
+  "neutral", "attentive", "surprised", "excited",
+  "happy", "laughing", "angry", "sad",
+  "scared", "suspicious", "confused", "curious",
+  "proud", "shy", "unimpressed", "sleepy",
 ];
-/* One act that is NOT a built-in state. The other ten prove the states work;
-   this one proves an integrator can write an eleventh without us — it is a
-   plain list of beats handed to `avatar.episode`, in the same vocabulary the
-   ten above are made of, and the page knows nothing else about it.
+const catalogueLabel = (id) => id.charAt(0).toUpperCase() + id.slice(1);
+const expressionEl = document.getElementById("expressions");
+const animationEl = document.getElementById("animations");
+const experimentalAnimationEl = document.getElementById("experimental-animations");
+let selectedExpression = "neutral";
+let selectedAnimation = "idle";
 
-   That distinction is the point of the demo (ADR 0006): a surface that only
-   ever calls its own built-ins cannot tell you whether the door is open. */
-const GREETING = [
-  { face: "surprised", hold: 0.7, kind: "hello", blink: true },
-  { face: "happy", hold: 1.2, trace: true, look: ["viewer", 1.4],
-    say: ["oh — hello.", 1600] },
-  { face: "attentive", hold: 1.4 },
-];
-ACTS.push(["Say hello (written)", () => avatar.episode(GREETING)]);
+function catalogueButton(label) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "catalogue-tile";
+  button.setAttribute("aria-label", label);
+  const text = document.createElement("span");
+  text.textContent = label;
+  button.appendChild(text);
+  return { button, text };
+}
 
-const acts = document.getElementById("acts");
-ACTS.forEach(([label, fn]) => {
-  const b = document.createElement("button");
-  b.type = "button"; b.textContent = label;
-  b.addEventListener("click", fn);
-  acts.appendChild(b);
+const expressionTiles = EXPRESSION_ORDER.map((id) => {
+  const face = FACES.find((item) => item.id === id);
+  const { button, text } = catalogueButton(catalogueLabel(id));
+  const stage = makeStage(button, { decorative: true, theme: DEMO_THEME });
+  button.appendChild(text);
+  button.addEventListener("click", () => {
+    selectedExpression = id;
+    selectedAnimation = "";
+    field.classList.remove("is-laughing", "is-surprised");
+    void field.offsetWidth;
+    if (id === "laughing") field.classList.add("is-laughing");
+    if (id === "surprised") field.classList.add("is-surprised");
+    avatar.episode([{ face: id, hold: 30 }]);
+    refreshCatalogues();
+  });
+  expressionEl.appendChild(button);
+  return { id, face, button, stage };
 });
 
-/* ── making one ───────────────────────────────────────────────────────────  */
-/* ── the catalogue, to look at ────────────────────────────────────────────
-   Fourteen buttons and one that plays the lot in the order the reference
-   video cut them. These are not reactions: they carry no mood trace and no
-   speech, they just play. Starting one cancels whatever else was playing,
-   which is why they are all `playAnim` and never queued. */
-/* ADR 0005: docs/decisions/0005-animation-catalogue.md */
-const animsEl = document.getElementById("anims");
-avatar.animations().forEach((s) => {
-  const b = document.createElement("button");
-  b.type = "button"; b.textContent = s.label;
-  b.addEventListener("click", () => avatar.animate(s.id));
-  animsEl.appendChild(b);
+const ANIMATION_SAMPLE = {
+  idle: 0.2, thinking: 0.8, wink: 0.7, wide: 0.8,
+  alert: 0.85, notify: 0.8, exclaim: 0.85, sleep: 1.1,
+  egg: 0.8, hexagon: 0.8, play: 0.9, orbit: 1.0, burst: 0.75, comet: 0.9,
+  nod: 0.42, nope: 0.35, listening: 0.8, peek: 0.72, focus: 0.8,
+  celebrate: 0.55, charge: 1, glitch: 0.62, melt: 1.1, portal: 1.2,
+  magnet: 0.95,
+};
+const animationTiles = STATES.map((state, index) => {
+  const { button, text } = catalogueButton(state.label);
+  const stage = makeStage(button, { decorative: true, theme: DEMO_THEME });
+  button.appendChild(text);
+  button.addEventListener("click", () => {
+    selectedAnimation = state.id;
+    selectedExpression = "";
+    field.classList.remove("is-laughing", "is-surprised");
+    avatar.animate(state.id);
+    refreshCatalogues();
+  });
+  (index < 14 ? animationEl : experimentalAnimationEl).appendChild(button);
+  return { state, button, stage };
 });
-const allBtn = document.createElement("button");
-allBtn.type = "button"; allBtn.textContent = "Play them all";
-allBtn.addEventListener("click", () => playAnimSequence());
-animsEl.appendChild(allBtn);
+
+function refreshCatalogues() {
+  const skin = avatar.skin();
+  const body = skin.body === "sun" ? makeSunBody(skin.sun) : (BODY_BY_ID[skin.body] || BODIES[0]);
+  for (const tile of expressionTiles) {
+    const pose = poseOf(tile.face);
+    drawStage(tile.stage, {
+      ...photoPoseOf(tile.face), body, paint: skin.paint, theme: avatar.theme(),
+    });
+    tile.button.setAttribute("aria-pressed", String(tile.id === selectedExpression));
+  }
+  for (const tile of animationTiles) {
+    const pose = tile.state.pose(ANIMATION_SAMPLE[tile.state.id] || 0.8);
+    if (tile.state.baseBody) pose.sil = bodySil(body);
+    drawStage(tile.stage, { ...pose, paint: skin.paint, theme: avatar.theme() });
+    tile.button.setAttribute("aria-pressed", String(tile.state.id === selectedAnimation));
+  }
+}
+
+window.addEventListener("mote-theme", () => refreshCatalogues());
+refreshCatalogues();
+
+const labView = document.getElementById("lab");
+const labHero = document.getElementById("lab-hero");
+const liveHero = document.querySelector("#live .live-hero");
+const catalogues = document.querySelector("#live .catalogues");
+document.getElementById("lab-open").addEventListener("click", () => {
+  liveView.classList.remove("on");
+  labView.classList.add("on");
+  labHero.appendChild(liveHero);
+  field.querySelector("svg").setAttribute("viewBox", "-240 -170 480 340");
+});
+document.getElementById("lab-back").addEventListener("click", () => {
+  labView.classList.remove("on");
+  liveView.classList.add("on");
+  liveView.insertBefore(liveHero, catalogues);
+  field.querySelector("svg").setAttribute("viewBox", VIEWBOX);
+});
 
 /* ── the creature as JSON ─────────────────────────────────────────────────
    `persona()` is the round trip made visible: what this panel shows is

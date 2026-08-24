@@ -8,25 +8,27 @@ import { load, PURE } from './harness.mjs'
 
 const PARTS = [...PURE, 'anim/decor.js', 'anim/states.js']
 
-/* The fourteen the owner asked for, in the order the reference video cuts
-   them. Written out rather than read from the source: a test that imports the
-   list it checks passes on any list. */
+/* The measured fourteen followed by the eleven original Mote states. Written
+   out rather than read from the source: a test that imports the list it checks
+   passes on any list. */
 const CATALOGUE = ['idle', 'thinking', 'wink', 'wide', 'alert', 'notify',
-  'exclaim', 'sleep', 'egg', 'hexagon', 'play', 'orbit', 'burst', 'comet']
+  'exclaim', 'sleep', 'egg', 'hexagon', 'play', 'orbit', 'burst', 'comet',
+  'nod', 'nope', 'listening', 'peek', 'focus', 'celebrate', 'charge', 'glitch',
+  'melt', 'portal', 'magnet']
 
-test('the catalogue is the fourteen states, in order', async () => {
+test('the catalogue is the measured core followed by original Mote states', async () => {
   const { STATES } = await load(PARTS)
   // joined, not deepEqual: the sandbox's arrays are from another realm
   assert.equal(STATES.map((s) => s.id).join(','), CATALOGUE.join(','))
 })
 
-test('only idle wears the resting face, and only three keep the chosen body', async () => {
+test('only idle wears the resting face, and body-preserving states keep the chosen shape', async () => {
   const { STATE_BY_ID } = await load(PARTS)
   const faces = CATALOGUE.filter((id) => STATE_BY_ID[id].baseFace)
   assert.equal(faces.join(','), 'idle')
   /* Everything else draws its own shape, and that shape IS the animation. */
   const bodies = CATALOGUE.filter((id) => STATE_BY_ID[id].baseBody)
-  assert.equal(bodies.join(','), 'idle,wink,wide,notify')
+  assert.equal(bodies.join(','), 'idle,wink,wide,alert,notify,nod,nope,listening,peek,focus,celebrate,charge,glitch,melt,portal,magnet')
 })
 
 test('every state returns a finite, complete pose across its whole run', async () => {

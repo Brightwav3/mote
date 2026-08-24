@@ -20,7 +20,7 @@
 const photoView = document.getElementById("photo");
 const photoHost = document.getElementById("photo-preview");
 const photoFacesEl = document.getElementById("photo-faces");
-const photoStage = makeStage(photoHost, { decorative: true });
+const photoStage = makeStage(photoHost, { decorative: true, theme: DEMO_THEME });
 
 /* The face ids are the vocabulary, not prose: "unimpressed" is the name of
    that pose everywhere else in this project, so it is the name on the tile. */
@@ -60,7 +60,7 @@ photoTiles = FACES.map((face) => {
   btn.title = photoLabel(face.id);
   btn.setAttribute("aria-label", photoLabel(face.id));
   btn.setAttribute("aria-pressed", String(face === photoPick.face));
-  const st = makeStage(btn, { decorative: true });
+  const st = makeStage(btn, { decorative: true, theme: DEMO_THEME });
   const paint = (body, hex) => drawStage(st, { ...photoPoseOf(face), body, paint: hex });
   btn.addEventListener("click", () => {
     photoPick.face = face;
@@ -70,10 +70,16 @@ photoTiles = FACES.map((face) => {
     drawPhoto();
   });
   photoFacesEl.appendChild(btn);
-  return { btn, face, paint };
+  return { btn, face, paint, stage: st };
 });
 
 const photoNameEl = document.getElementById("photo-face-name");
+
+window.addEventListener("mote-theme", (event) => {
+  photoStage.theme = event.detail;
+  photoTiles.forEach((tile) => { tile.stage.theme = event.detail; });
+  drawPhoto();
+});
 
 /* ── taking it away ───────────────────────────────────────────────────────
    The stage's viewBox is already square and centred (-150 -150 300 300), so

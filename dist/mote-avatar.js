@@ -164,31 +164,31 @@ const FACES = [
   { id: "round",       v: 0.34, a: 0.72, d: -0.10, yaw:   5, pitch:  -2, roll:   0, split: 16.60,
     eyes: [eye(0.30, 0.30, 0, 1), eye(0.30, 0.30, 0, 1)] },   // mine, not Bloub's
   { id: "surprised",   v: 0.05, a: 0.88, d: -0.20, yaw:   3, pitch:  -3, roll:   0, split: 19.00,
-    eyes: [eye(0.45, 0.47, 0, 1), eye(0.45, 0.47, -0, 1)] },
+    eyes: [eye(0.46, 0.46, 0, 1), eye(0.46, 0.46, 0, 1)] },
   { id: "excited",     v: 0.75, a: 0.95, d: 0.50, yaw:   6, pitch: -14, roll:   0, split: 19.50,
     eyes: [eye(0.4, 0.56, -10, 1), eye(0.4, 0.56, 10, 1)] },
   { id: "happy",       v: 0.70, a: 0.50, d: 0.30, yaw:   5, pitch:   9, roll:   0, split: 17.00,
-    eyes: [eye(0.27, 0.17, 14, 1), eye(0.27, 0.17, -14, 1)] },
+    eyes: [eye(0.28, 0.28, 0, 1), eye(0.28, 0.28, 0, 1)] },
   { id: "laughing",    v: 0.88, a: 0.76, d: 0.50, yaw:   4, pitch:  14, roll:   0, split: 18.00,
-    eyes: [eye(0.34, 0.13, 20, 1), eye(0.34, 0.13, -20, 1)] },
+    eyes: [eye(0.4, 0.56, -10, 1), eye(0.4, 0.56, 10, 1)] },
   { id: "proud",       v: 0.60, a: 0.40, d: 0.90, yaw:   5, pitch:  17, roll:   0, split: 17.00,
     eyes: [eye(0.3, 0.15, 18, 1), eye(0.3, 0.15, -18, 1)] },
   { id: "shy",         v: 0.28, a: 0.34, d: -0.60, yaw: -19, pitch: -14, roll:  -7, split: 14.00,
-    eyes: [eye(0.17, 0.3, 0, 1), eye(0.17, 0.3, -0, 1)] },
+    eyes: [eye(0.16, 0.34, 28, 1), eye(0.16, 0.34, -28, 1)] },
   { id: "confused",    v: -0.28, a: 0.55, d: -0.40, yaw: -14, pitch:   3, roll:   8, split: 16.50,
     eyes: [eye(0.2, 0.44, -18, 1), eye(0.28, 0.17, 14, 1)] },
   { id: "suspicious",  v: -0.38, a: 0.45, d: 0.20, yaw:  12, pitch:   6, roll:  -6, split: 16.00,
     eyes: [eye(0.21, 0.4, 0, 1), eye(0.22, 0.15, 0, 1)] },
   { id: "sad",         v: -0.72, a: 0.24, d: -0.50, yaw:   3, pitch: -13, roll:   0, split: 16.00,
-    eyes: [eye(0.22, 0.4, -28, 1), eye(0.22, 0.4, 28, 1)] },
+    eyes: [eye(0.22, 0.4, 28, 1), eye(0.22, 0.4, -28, 1)] },
   { id: "angry",       v: -0.82, a: 0.78, d: 0.70, yaw:   3, pitch:   7, roll:   0, split: 17.00,
-    eyes: [eye(0.34, 0.15, 30, 1), eye(0.34, 0.15, -30, 1)] },
+    eyes: [eye(0.4, 0.1, 38, 1), eye(0.4, 0.1, -38, 1)] },
   { id: "scared",      v: -0.62, a: 0.96, d: -0.90, yaw:   2, pitch: -20, roll:   0, split: 20.50,
     eyes: [eye(0.4, 0.6, 0, 1), eye(0.4, 0.6, -0, 1)] },
   { id: "unimpressed", v: -0.20, a: 0.12, d: 0.30, yaw: -22, pitch:   2, roll:   0, split: 16.00,
     eyes: [eye(0.3, 0.12, 0, 1), eye(0.3, 0.12, -0, 1)] },
   { id: "sleepy",      v: 0.05, a: 0.02, d: -0.10, yaw:   6, pitch:  -9, roll:  -3, split: 16.00,
-    eyes: [eye(0.2, 0.42, 0, 0.42), eye(0.2, 0.42, -0, 0.42)] },
+    eyes: [eye(0.34, 0.2, 0, 0.24), eye(0.34, 0.2, -0, 0.24)] },
 ];
 
 /* Shepard weights over all seventeen. Arousal counts heavier than valence
@@ -321,6 +321,7 @@ function blendFace(v, a, d) {
 }
 
 /* Damped spring. Values carry momentum, so mood cannot be assigned — only
+
    pushed. `k` sets how hard it is pulled home, `c` how much it fights motion. */
 class Spring {
   constructor(value, k, c) { this.x = value; this.v = 0; this.home = value; this.k = k; this.c = c; }
@@ -413,7 +414,10 @@ class Gaze {
 }
 
 
-/* ── BODIES ───────────────────────────────────────────────────────────────
+/* ADR 0001: these generators are faithful Bloub ports, not approximations.
+   docs/decisions/0001-port-bloub-verbatim.md
+
+   ── BODIES ───────────────────────────────────────────────────────────────
    Ported from Bloub's `shape.ts` / `skins.ts`, function for function, rather
    than reimplemented. My own versions were close in spirit and wrong in every
    particular: 240 samples instead of 64, corners rounded by a p-norm soft
@@ -424,6 +428,7 @@ class Gaze {
 
    A shape is a radial profile: one radius per angle, all shapes sampled at the
    same angles, so any two correspond point for point.                       */
+
 /* ADR 0001: generators ported from bloub/src/bot/shape.ts and skins.ts, pinned
    by test/shapes.test.mjs. 64 samples, Minkowski corner rounding and peak-radius
    normalisation are load-bearing. docs/decisions/0001-port-bloub-verbatim.md */
@@ -556,6 +561,39 @@ const cloud = normalizeProfile(unionOfCirclesProfile([
 const droplet = normalizeProfile(
   profileFromPolygon(hullOfCircles(0, 0.28, 0.66, 0, -0.96, 0.05), 0, 0), 1.04);
 
+/* ADR 0011: Blobatar's sun is adapted as one radial profile so it keeps
+   Mote's renderer, face fitting and morphing. The four authored controls are
+   deliberately body data, not a second decoration layer.
+   docs/decisions/0011-editable-sun-body.md */
+const SUN_DEFAULTS = Object.freeze({ size: 0.23, count: 8, distance: 1.04, rotation: 0 });
+function sunOptions(value = {}) {
+  return {
+    size: clamp(Number(value.size) || SUN_DEFAULTS.size, 0.14, 0.34),
+    count: Math.round(clamp(Number(value.count) || SUN_DEFAULTS.count, 5, 12)),
+    distance: clamp(Number(value.distance) || SUN_DEFAULTS.distance, 0.9, 1.18),
+    rotation: ((Number(value.rotation) || 0) % 360 + 360) % 360,
+  };
+}
+function sunProfile(value) {
+  const p = sunOptions(value);
+  const off = rad(p.rotation);
+  const sizeK = (p.size - 0.14) / 0.2;
+  const distanceK = (p.distance - 0.9) / 0.28;
+  const depth = 0.13 + sizeK * 0.18 + distanceK * 0.14;
+  /* A raised cosine has a flat derivative at both the valley and the tip, so
+     every lobe grows out of the core instead of reading as a circle glued to
+     it. Larger petals are also broader, matching what "size" means by eye. */
+  const roundness = 1.7 - sizeK * 0.75;
+  return normalizeProfile(ANGLES.map((a) => {
+    const wave = 0.5 + 0.5 * Math.cos((a - off) * p.count);
+    return 1 - depth + depth * Math.pow(wave, roundness);
+  }), 1.04);
+}
+function makeSunBody(value) {
+  const sun = sunOptions(value);
+  return { id: "sun", label: "Sun", profile: sunProfile(sun), sun };
+}
+
 /* Capsule lying down: the hull of two discs side by side. Not normalised —
    the original leaves it alone. */
 const capsule = profileFromPolygon(hullOfCircles(-0.42, 0, 0.62, 0.42, 0, 0.62), 0, 0);
@@ -574,6 +612,7 @@ const BODIES = [
   { id: "hexagone", label: "Hexagon", profile: regularPolygonProfile(6, 1.04, 0.26, 0) },
   { id: "nuage", label: "Cloud", profile: cloud },
   { id: "goutte", label: "Droplet", profile: droplet },
+  makeSunBody(SUN_DEFAULTS),
 ];
 const BODY_BY_ID = Object.fromEntries(BODIES.map((b) => [b.id, b]));
 
@@ -586,12 +625,12 @@ const BODY_BY_ID = Object.fromEntries(BODIES.map((b) => [b.id, b]));
    reshape. So it is built once per body and never again; rebuilding it every
    frame was pure waste. */
 const TENSION = 1 / 6;   // Bloub's closedPath tension
-const PATH_CACHE = new Map();
+const PATH_CACHE = new WeakMap();
 function profilePath(body, R) {
-  const hit = PATH_CACHE.get(body.id);
+  const hit = PATH_CACHE.get(body);
   if (hit) return hit;
   const d = buildPath(body.profile, R);
-  PATH_CACHE.set(body.id, d);
+  PATH_CACHE.set(body, d);
   return d;
 }
 
@@ -738,15 +777,9 @@ const PAINTS = [
   ["Pink", "#e152b0"], ["Grey", "#a3a3a3"], ["White", "#ffffff"],
 ];
 
-/* The eyes are white on every body but the white one, which takes dark ink.
-   This is Bloub's own arrangement — a single `--ink` for the whole cast — and
-   it is a look, not a contrast optimum: measured, white on Amber is 1.75:1 and
-   on Grey 1.93:1, well under the 3:1 that WCAG 1.4.11 asks of a non-text
-   graphic. Chosen deliberately over the best-of-two rule that used to live
-   here, which kept every paint above 4.5:1 but gave the creature dark eyes on
-   half the palette and light eyes on the other half — one animal wearing two
-   different faces depending on its colour. `contrastRatio` stays below so the
-   cost stays measurable rather than forgotten. */
+/* ADR 0012: eye ink follows the host theme as one cast-wide colour, with only
+   the matching endpoint inverted so a black or white body keeps its face. */
+const BLACK_BODY = "#0a0a0c";
 const WHITE_BODY = "#ffffff";
 const INKS = ["#14181A", "#FFFFFF"];
 
@@ -762,8 +795,10 @@ function contrastRatio(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-function eyeInkFor(hex) {
-  return hex.toLowerCase() === WHITE_BODY ? INKS[0] : INKS[1];
+function eyeInkFor(hex, theme = "light") {
+  const paint = hex.toLowerCase();
+  if (theme === "dark") return paint === BLACK_BODY ? INKS[1] : INKS[0];
+  return paint === WHITE_BODY ? INKS[0] : INKS[1];
 }
 
 /* ── KEEPING THE EYES INSIDE THE BODY ─────────────────────────────────────
@@ -1086,6 +1121,8 @@ function dotPulse(t, index) {
   return clamp(k * 2);
 }
 
+/* ADR 0015: definitions mark large-field motion explicitly with `big`.
+   docs/decisions/0015-large-field-motion-is-omitted-under-reduced-motion.md */
 const STATES = [
   {
     id: "idle", label: "Idle", duration: 2.4, morph: 0.45,
@@ -1139,24 +1176,20 @@ const STATES = [
   },
 
   {
-    big: true, id: "alert", label: "Alert", duration: 2.4, minDuration: 2, morph: 0.45,
-    blinkIn: false, baseFace: false, baseBody: false,
+    /* Keep the public `alert` id as a compatibility alias. In the picker this
+       slot is now Writing: the gaze repeatedly scans a short line, drops, and
+       starts again while the chosen body stays recognisable. */
+    id: "alert", label: "Writing", duration: 2.4, minDuration: 2, morph: 0.35,
+    blinkIn: true, baseFace: false, baseBody: true,
     pose: (t) => {
-      // Measured travel: -0.087 to +0.732 in 1.5s, ease-in-out, micro-overshoot.
-      const travel = EASE.inOutCubic(clamp(t / 1.5)) * 0.82 - 0.087;
-      const back = t > 1.6 ? clamp((t - 1.6) / 0.4) : 0;
-      const x = travel * (1 - back) + 0.1 * back;
-      // 2.5Hz secondary buzz, bar and dot in antiphase.
-      const buzz = Math.sin(t * 2.5 * TAU) * 0.005;
-      const tilt = (17.7 * Math.PI) / 180;
+      const line = (t % 0.8) / 0.8;
+      const reset = line > 0.88 ? (line - 0.88) / 0.12 : 0;
+      const yaw = -18 + line * 34 - reset * 34;
+      const bob = Math.sin(t * 5 * TAU) * 1.4;
       return baseState({
-        sil: barItalic({ rot: tilt, cx: x, cy: -0.325 - buzz }),
-        eyeAlpha: 0,
-        dots: [{
-          x: x - Math.sin(tilt) * 0.58,
-          y: -0.325 + Math.cos(tilt) * 0.58 + buzz * 2.8,
-          r: 0.118, d: TEAR, rot: (tilt * 180) / Math.PI, opacity: 1,
-        }],
+        gaze: { yaw, pitch: 18 + bob, roll: -4 },
+        split: 15.5,
+        eyes: pair(0.29, 0.32),
       });
     },
   },
@@ -1300,6 +1333,138 @@ const STATES = [
   },
 ];
 
+/* Original Mote choreography. Unlike the fourteen measured Bloub states
+   above, these deliberately keep the chosen body and move it through the
+   transform channels that `poseOfState` composes onto the resting profile. */
+const beat = (t, duration) => clamp(t / duration);
+const pulse01 = (t) => 0.5 - 0.5 * Math.cos(clamp(t) * TAU);
+
+STATES.push(
+  {
+    id: "nod", label: "Nod", duration: 1.25, morph: 0.2,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.25) * Math.PI * 2) * Math.sin(beat(t, 1.25) * Math.PI);
+      return baseState({ sil: circleSil(1, { cy: k * 0.13, sy: 1 - Math.max(0, k) * 0.06 }),
+        gaze: { yaw: 0, pitch: 8 + k * 24, roll: 0 }, eyes: pair(0.24, 0.4) });
+    },
+  },
+  {
+    id: "nope", label: "Nope", duration: 1.15, morph: 0.18,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const fade = Math.sin(beat(t, 1.15) * Math.PI);
+      return baseState({ gaze: { yaw: Math.sin(t * TAU * 3.2) * 34 * fade, pitch: 0, roll: 0 },
+        eyes: pair(0.23, 0.4) });
+    },
+  },
+  {
+    id: "listening", label: "Listening", duration: 1.8, morph: 0.25,
+    blinkIn: true, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.8) * Math.PI);
+      return baseState({ sil: circleSil(1, { rot: -0.13 * k, cx: -0.06 * k }),
+        gaze: { yaw: -28 * k, pitch: -4, roll: -10 * k }, split: 17,
+        eyes: [eye(0.34 + 0.13 * k, 0.46 + 0.12 * k), eye(0.23, 0.4)] });
+    },
+  },
+  {
+    id: "peek", label: "Peek", duration: 1.55, morph: 0.22,
+    blinkIn: true, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.55) * Math.PI);
+      return baseState({ gaze: { yaw: 64 * k, pitch: -3, roll: 8 * k }, split: 13,
+        eyes: pair(0.22, 0.42), eyeAlpha: clamp(k * 4) });
+    },
+  },
+  {
+    id: "focus", label: "Focus", duration: 1.65, morph: 0.24,
+    blinkIn: true, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = EASE.inOutCubic(Math.sin(beat(t, 1.65) * Math.PI));
+      return baseState({ gaze: { yaw: 0, pitch: 0, roll: 0 }, split: 16 - 6 * k,
+        eyes: pair(0.25 + 0.05 * k, 0.42 - 0.27 * k) });
+    },
+  },
+  {
+    big: true, id: "celebrate", label: "Celebrate", duration: 1.8, morph: 0.2,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const p = beat(t, 1.8), jump = Math.sin(p * Math.PI) * Math.sin(p * Math.PI * 3);
+      const pop = pulse01(clamp(t / 0.7));
+      return baseState({ sil: circleSil(1, { cy: -Math.max(0, jump) * 0.34, sy: 1 + Math.max(0, jump) * 0.08 }),
+        gaze: { yaw: 0, pitch: -14, roll: 0 }, split: 19, eyes: pair(0.36, 0.48),
+        dots: Array.from({ length: 8 }, (_, i) => ({ x: Math.cos(i * TAU / 8) * (0.75 + pop * 0.5),
+          y: Math.sin(i * TAU / 8) * (0.75 + pop * 0.5), r: 0.055 + 0.025 * pop,
+          opacity: Math.sin(p * Math.PI) })) });
+    },
+  },
+  {
+    big: true, id: "charge", label: "Charge", duration: 2, morph: 0.28,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const p = beat(t, 2), k = Math.sin(p * Math.PI), buzz = Math.sin(t * 34) * k;
+      return baseState({ sil: circleSil(1, { cx: buzz * 0.018, sx: 1 + k * 0.18, sy: 1 - k * 0.25 }),
+        gaze: { yaw: 0, pitch: 8, roll: 0 }, split: 13, eyes: pair(0.31, 0.16 + 0.1 * (1 - k)),
+        dots: Array.from({ length: 6 }, (_, i) => ({ x: Math.cos(i * TAU / 6 + t) * (1.3 - k * 0.55),
+          y: Math.sin(i * TAU / 6 + t) * (1.3 - k * 0.55), r: 0.045, opacity: k })) });
+    },
+  },
+  {
+    id: "glitch", label: "Glitch", duration: 1.35, morph: 0.08,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const active = Math.sin(beat(t, 1.35) * Math.PI);
+      const snap = Math.sin(Math.floor(t * 18) * 12.9898) * active;
+      return baseState({ sil: circleSil(1, { cx: snap * 0.12, sx: 1 + Math.abs(snap) * 0.08 }),
+        gaze: { yaw: snap * 42, pitch: snap * 9, roll: snap * 8 }, split: 17 + snap * 5,
+        eyes: [eye(0.27, 0.39), eye(0.27, 0.39)],
+        dots: [-0.45, 0, 0.45].map((y, i) => ({ x: -snap * (0.45 + i * 0.12), y,
+          r: 0.035 + i * 0.01, opacity: active })) });
+    },
+  },
+  {
+    big: true, id: "melt", label: "Puddle", duration: 2.25, morph: 0.35,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 2.25) * Math.PI);
+      return baseState({ sil: circleSil(1, { cy: 0.48 * k, sx: 1 + 0.46 * k, sy: 1 - 0.68 * k }),
+        gaze: { yaw: 0, pitch: 24 * k, roll: 0 }, split: 17,
+        eyes: pair(0.26 + 0.1 * k, 0.4 - 0.26 * k) });
+    },
+  },
+  {
+    big: true, id: "portal", label: "Portal", duration: 2.4, morph: 0.3,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const p = beat(t, 2.4);
+      const out = EASE.inOutCubic(clamp(p / 0.24));
+      const inside = p >= 0.24 && p < 0.62;
+      const back = EASE.outCubic(clamp((p - 0.62) / 0.25));
+      const scale = inside ? 0.015 : p < 0.62 ? 1 - out * 0.985 : 0.015 + back * 0.985;
+      const cx = p < 0.62 ? -0.56 * out : 0.56 * (1 - back);
+      const portalX = p < 0.5 ? -0.56 : 0.56;
+      const ringOpacity = Math.sin(p * Math.PI);
+      return baseState({ sil: circleSil(1, { sx: scale, sy: scale, cx, rot: t * 5 }),
+        gaze: { yaw: p < 0.62 ? -35 : 35, pitch: 0, roll: t * 22 }, eyes: pair(0.22, 0.4),
+        eyeAlpha: p < 0.62 ? 1 - clamp(p / 0.14) : clamp((p - 0.68) / 0.1),
+        arcs: RINGS.slice(0, 3).map((s, i) => ({ id: `pt${i}`,
+          seed: { ...s, a: 0.58 + i * 0.13, k: 0.12, cx: portalX }, t,
+          opacity: ringOpacity })) });
+    },
+  },
+  {
+    id: "magnet", label: "Magnet", duration: 1.9, morph: 0.26,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.9) * Math.PI);
+      return baseState({ sil: circleSil(1, { cx: 0.28 * k, sx: 1 + 0.34 * k, sy: 1 - 0.09 * k }),
+        gaze: { yaw: 58 * k, pitch: -4, roll: 4 * k }, split: 15 - 3 * k,
+        eyes: [eye(0.25 + 0.08 * k, 0.42), eye(0.25 + 0.15 * k, 0.42)] });
+    },
+  },
+);
+
 const STATE_BY_ID = Object.fromEntries(STATES.map((s) => [s.id, s]));
 /* Reading order of the full sequence, as cut in the reference video. */
 const SEQUENCE = STATES.map((s) => s.id);
@@ -1363,7 +1528,6 @@ function makeStage(host, opts = {}) {
   });
   add(mask, "rect", { x: "-150", y: "-150", width: "300", height: "300", fill: "#fff" });
   const notch = add(mask, "circle", { r: "0", fill: "#000" });
-
   const wrap = add(svg, "g");
   const arcsBack = add(wrap, "g");
   const dotsBack = add(wrap, "g");
@@ -1372,14 +1536,14 @@ function makeStage(host, opts = {}) {
   const eyes = [0, 1].map(() => {
     const outer = add(wrap, "g");
     const inner = add(outer, "g");
-    return { outer, inner, rect: add(inner, "rect", { rx: "9" }) };
+    return { outer, inner, rect: add(inner, "rect", { rx: "9", "data-mote-eye": "true" }) };
   });
   const arcsFront = add(wrap, "g");
   const dotsFront = add(wrap, "g");
   const pip = add(wrap, "circle", { r: "0", fill: NOTIF_BLUE });
 
   return {
-    uid, svg, defs, notch, pip,
+    uid, svg, defs, notch, pip, theme: opts.theme || "light",
     arcsBack, arcsFront, dotsBack, dotsFront,
     wrap, bodyG, body, eyes,
     dotPool: [], arcPool: new Map(),
@@ -1437,9 +1601,11 @@ function drawStage(st, pose) {
   if (pose.sil) {
     st.body.setAttribute("d", silPath(pose.sil, R));
     st.shownBody = null;
-  } else if (st.shownBody !== pose.body.id) {
+  } else if (st.shownBody !== pose.body) {
     st.body.setAttribute("d", profilePath(pose.body, R));
-    st.shownBody = pose.body.id;
+    /* ADR 0011: editable Sun profiles share the public id `sun`, so identity
+       here must be the immutable body object rather than its catalogue id. */
+    st.shownBody = pose.body;
   }
   st.body.setAttribute("fill", pose.paint);
   st.wrap.setAttribute("transform", `translate(${r2(pose.x)},${r2(pose.y)})`);
@@ -1455,15 +1621,34 @@ function drawStage(st, pose) {
      docs/decisions/0010-eye-containment-solved-not-authored.md */
   const fit = eyeFitFor(pose.sil ? pose.sil.radii : pose.body.profile,
                         frames, pose.eyes, R);
-  const ink = eyeInkFor(pose.paint);
-  const alpha = pose.eyeAlpha === undefined ? 1 : pose.eyeAlpha;
+  /* ADR 0012: theme belongs to the host surface, not to a body colour. */
+  const ink = eyeInkFor(pose.paint, pose.theme || st.theme);
+  /* Animations use `eyeAlpha: 0` when the creature stops being a creature —
+     a burst, a comet, the "!" bar. There is no face on those shapes, so the
+     eyes go entirely rather than hanging on at a floor: a pair of eyes on a
+     comet reads as a bug, not as identity. The identity is carried by the
+     paint and the silhouette for those two seconds, and the animation ramps
+     the alpha back up as the body returns. A blink is a separate lid
+     transform and remains fully intact. */
+  const alpha = pose.eyeAlpha === undefined ? 1 : clamp(pose.eyeAlpha, 0, 1);
+  /* ADR 0017: body transforms carry facial anchors.
+     docs/decisions/0017-body-transforms-carry-facial-anchors.md
+
+     A posed silhouette can stretch, rotate, or travel. Its eyes belong to
+     that material, so their centres follow the same transform instead of
+     remaining pinned to the stage while the body moves around them. */
+  const sil = pose.sil || { sx: 1, sy: 1, rot: 0, cx: 0, cy: 0 };
+  const cr = Math.cos(sil.rot || 0), sr = Math.sin(sil.rot || 0);
   frames.forEach((p, i) => {
     const n = st.eyes[i];
     const e = pose.eyes[i];
     const w = e.w * R * fit, h = e.h * R * fit;
     const lidScale = 0.06 + 0.94 * clamp(e.open * pose.blinkLid);
+    const ex = p.x * fit * (sil.sx ?? 1), ey = p.y * fit * (sil.sy ?? 1);
+    const tx = ex * cr - ey * sr + (sil.cx || 0) * R;
+    const ty = ex * sr + ey * cr + (sil.cy || 0) * R;
     n.outer.setAttribute("transform",
-      `translate(${r2(p.x * fit)},${r2(p.y * fit)}) scale(1,${r2(lidScale)})`);
+      `translate(${r2(tx)},${r2(ty)}) scale(1,${r2(lidScale)})`);
     n.inner.setAttribute("transform",
       `matrix(${r2(p.a)},${r2(p.b)},${r2(p.c)},${r2(p.d)},0,0) rotate(${r2(e.tilt)})`);
     n.rect.setAttribute("x", r2(-w / 2)); n.rect.setAttribute("y", r2(-h / 2));
@@ -1567,6 +1752,8 @@ function temperamentFor(name) {
    Scold it and it is subdued for minutes afterwards, so the NEXT thing you do
    lands differently. Nothing on screen reports this; you just notice that it
    has been in a funny mood since you shouted at it.                        */
+/* ADR 0013: mood residue is deposited on events, not integrated from springs.
+   docs/decisions/0013-mood-residue-is-deposited-on-events.md */
 class Mood {
   constructor() { this.v = 0; this.a = 0; this.d = 0; }
 
@@ -1607,7 +1794,8 @@ function makeMoteState() {
     gaze: new Gaze(),
     ambient: true,
 
-  body: BODIES[0], paint: PAINTS[0][1], name: "Mote",
+  /* ADR 0011: Sun geometry is skin state even when another body is worn. */
+  body: BODIES[0], sun: sunOptions(), paint: PAINTS[0][1], name: "Mote", theme: "light",
   bodyFrom: null, bodyAt: -9,   // a change of body morphs; see morphBody
 
   mode: "about", modeUntil: 0,
@@ -1624,6 +1812,8 @@ function makeMoteState() {
   episodes: {},
   episodeOpts: {},
   lastInput: clock,
+  /* Set at mount: a decorative copy never falls asleep on its own. */
+  decorative: false,
   cursor: { x: 0, y: 0, has: false },
   lastStim: "", lastStimAt: -99,
 
@@ -1736,6 +1926,8 @@ const FACE_AT = Object.fromEntries(FACES.map((f) => [f.id, f]));
    feeling. The body kick lands in two beats — a small counter-move, then the
    reaction proper 130ms later — because without anticipation every reaction
    reads as a jump-cut however smoothly it is interpolated. */
+/* ADR 0013: exactly one externally caused opening beat may leave mood residue.
+   docs/decisions/0013-mood-residue-is-deposited-on-events.md */
 function react(faceId, hold, opts = {}) {
   const f = FACE_AT[faceId];
   const n = (opts.kind ? novelty(opts.kind) : 1) * clamp(mote.temper.volatility, 0.4, 1.6);
@@ -1778,7 +1970,10 @@ function say(text, ms) {
   if (mote.onSay) mote.onSay(text, ms);
 }
 
-/* Looking at you means looking at WHERE YOU WERE when he decided to look.
+/* ADR 0016: deliberate attention snapshots rather than tracks its target.
+   docs/decisions/0016-attention-snapshots-targets-instead-of-tracking.md
+
+   Looking at you means looking at WHERE YOU WERE when he decided to look.
    Re-reading the cursor every frame is tracking, however rarely it starts, and
    the eyes glue to the pointer. Snapshot once; hold the fixation. */
 function look(mode, seconds) {
@@ -1822,7 +2017,11 @@ function pickPlace(near) {
   mote.placePitch = clamp(mote.placePitch, -24, 26);
 }
 
-/* Things that occur to him, unprompted.
+/* ADR 0014: autonomous thoughts cover the full face repertoire but leave no
+   mood trace.
+   docs/decisions/0014-autonomous-thoughts-cover-the-repertoire-without-mood-trace.md
+
+   Things that occur to him, unprompted.
 
    The first version of this list named six faces, and a measurement over half
    an hour of him alone found the obvious consequence: eight of the seventeen
@@ -1899,7 +2098,7 @@ function direct(t) {
     mote.dominance.home = mote.restD;
   };
 
-  if (mote.mode !== "asleep" && idle > 52) {
+  if (mote.mode !== "asleep" && idle > 52 && !mote.decorative) {
     mote.mode = "asleep"; mote.modeUntil = t + 999;
     settle(0.05, 0.02, -0.1);
   } else if (mote.mode === "asleep") {
@@ -2030,6 +2229,8 @@ function leaveAnim() {
   anim.morphDur = EXIT_MORPH;
 }
 
+/* ADR 0015: large-field states are omitted under reduced motion.
+   docs/decisions/0015-large-field-motion-is-omitted-under-reduced-motion.md */
 function playAnim(id, hold) {
   const def = STATE_BY_ID[id];
   if (!def) return;
@@ -2041,7 +2242,9 @@ function playAnim(id, hold) {
   /* Whatever is showing becomes the thing we fade FROM — including a state
      that was itself only half-arrived. Its own clock keeps running. */
   anim.prev = anim.cur || { def: null, t0: clock };
-  anim.cur = { def, t0: clock, until: clock + Math.max(def.minDuration ?? 0, hold ?? def.duration) };
+  anim.cur = {
+    def, t0: clock, until: clock + Math.max(def.minDuration ?? 0, hold ?? def.duration),
+  };
   anim.morphT0 = clock;
   anim.morphDur = def.morph;
   if (def.blinkIn) blink(clock, 0.26);
@@ -2067,15 +2270,23 @@ function animBusy() {
 /* One state's contribution, resolved against ordinary life. `baseBody` and
    `baseFace` mean "that channel is not mine", so the body you picked and the
    expression the mood chose come through untouched. */
+/* ADR 0017: silhouette transforms carry facial anchors in the renderer.
+   docs/decisions/0017-body-transforms-carry-facial-anchors.md */
 function poseOfState(def, local, rest) {
   const p = def.pose(local);
+  const sil = def.baseBody ? {
+    ...rest.sil,
+    rot: p.sil.rot, cx: p.sil.cx, cy: p.sil.cy,
+    sx: p.sil.sx, sy: p.sil.sy,
+  } : p.sil;
   return {
-    sil: def.baseBody ? rest.sil : p.sil,
+    sil,
     gaze: def.baseFace ? rest.gaze : p.gaze,
     split: def.baseFace ? rest.split : p.split,
     eyes: def.baseFace ? rest.eyes : p.eyes,
     eyeAlpha: p.eyeAlpha,
-    dots: p.dots, arcs: p.arcs, notif: p.notif, dotsBehind: p.dotsBehind,
+    dots: p.dots, arcs: p.arcs, notif: p.notif,
+    dotsBehind: p.dotsBehind,
   };
 }
 
@@ -2177,9 +2388,12 @@ let nextAnimAt = 24;
 
 function maybeIdleAnim(t) {
   if (t < nextAnimAt) return;
-  nextAnimAt = t + rnd(26, 62);
-  if (animBusy() || mote.mode === "asleep" || t < mote.episodeUntil) return;
+  /* Sleep changes attention and mood, not whether the creature is alive. An
+     ambient avatar keeps its animation loop running after the long-idle mode
+     switch; reduced motion is handled by playAnim itself. */
+  if (animBusy() || t < mote.episodeUntil) return;
   if (mote.hold && t < mote.hold.until) return;
+  nextAnimAt = t + rnd(26, 62);
   let r = Math.random() * IDLE_ANIMS.reduce((n, [w]) => n + w, 0);
   for (const [w, id] of IDLE_ANIMS) if ((r -= w) <= 0) return playAnim(id);
 }
@@ -2597,6 +2811,7 @@ const AGENT_ACTS = {
     epoch++; stopAnim();
     mote.hold = null; mote.episodeUntil = -9;
     mote.lastInput = clock - 52;
+    mote.mode = "asleep"; mote.modeUntil = clock + 999;
     mote.cursor.has = false;
   },
 };
@@ -2613,9 +2828,16 @@ const AGENT_ACTS = {
    ADR 0009: docs/decisions/0009-multi-instance-agent-avatars.md */
 
 function mountMote(host, opts = {}) {
+  /* ADR 0011: Sun settings travel with skins and personas. Switching bodies
+     morphs; editing petals replaces the current Sun profile directly. */
   if (!host) throw new Error("mote: mount needs an element");
 
-  const stage = makeStage(host, { decorative: opts.decorative === true });
+  const stage = makeStage(host, { decorative: opts.decorative === true, theme: opts.theme });
+  /* A decorative copy is not a session, so it has no quiet to fall asleep
+     into: a roster of avatars nobody points at would otherwise all drop
+     asleep 52 seconds after the page loaded and never wake, because only a
+     pointer or a poke wakes one. `asleep()` still puts it under deliberately. */
+  mote.decorative = opts.decorative === true;
   let running = false;
   let raf = 0;
   let last = 0;
@@ -2627,7 +2849,16 @@ function mountMote(host, opts = {}) {
        temperament, so the same name is always the same animal. */
     setSkin(next = {}) {
       /* A change of body MORPHS — it does not swap. See `morphBody`. */
-      if (next.body && BODY_BY_ID[next.body]) morphBody(mote, BODY_BY_ID[next.body], clock);
+      const wasSun = mote.body.id === "sun";
+      if (next.sun) mote.sun = sunOptions({ ...mote.sun, ...next.sun });
+      if (next.body && BODY_BY_ID[next.body]) {
+        const body = next.body === "sun" ? makeSunBody(mote.sun) : BODY_BY_ID[next.body];
+        if (wasSun && next.body === "sun" && next.sun) {
+          mote.body = body; mote.bodyFrom = null; mote.bodyAt = clock;
+        } else morphBody(mote, body, clock);
+      } else if (next.sun && mote.body.id === "sun") {
+        mote.body = makeSunBody(mote.sun); mote.bodyFrom = null; mote.bodyAt = clock;
+      }
       if (next.paint) mote.paint = next.paint;
       if (next.name) { mote.name = next.name; mote.temper = temperamentFor(next.name); }
       return api;
@@ -2639,7 +2870,16 @@ function mountMote(host, opts = {}) {
     look(mode = "about", seconds = 1.4) { look(mode, seconds); return api; },
 
     /* What it currently is. Enough to save and restore one. */
-    skin: () => ({ body: mote.body.id, paint: mote.paint, name: mote.name }),
+    skin: () => ({ body: mote.body.id, paint: mote.paint, name: mote.name, sun: { ...mote.sun } }),
+
+    /* ADR 0012: theme is host context, so it changes eye ink without becoming
+       part of the portable creature persona. */
+    setTheme(theme) {
+      if (theme !== "light" && theme !== "dark") throw new Error('mote: theme must be "light" or "dark"');
+      mote.theme = theme;
+      return api;
+    },
+    theme: () => mote.theme,
 
     /* ADR 0008-snapshot-boundary: Copy the last frame into a decorative host without mounting another
        creature. This is deliberately a rendered SVG snapshot, not a CSS
@@ -2675,11 +2915,14 @@ function mountMote(host, opts = {}) {
       });
       const bodyNode = nodes.find((node) => node.getAttribute("data-mote-body") === "true");
       if (bodyNode && options.body && BODY_BY_ID[options.body]) {
-        bodyNode.setAttribute("d", profilePath(BODY_BY_ID[options.body], R));
+        const snapshotBody = options.body === "sun" ? makeSunBody(options.sun) : BODY_BY_ID[options.body];
+        bodyNode.setAttribute("d", profilePath(snapshotBody, R));
       }
       if (bodyNode && options.paint) {
         bodyNode.setAttribute("fill", options.paint);
-        const ink = eyeInkFor(options.paint);
+      }
+      if (options.paint || options.theme) {
+        const ink = eyeInkFor(options.paint || mote.paint, options.theme || mote.theme);
         nodes.filter((node) => node.tagName === "rect" && node.getAttribute("rx") !== null)
           .forEach((node) => node.setAttribute("fill", ink));
       }
@@ -2725,7 +2968,7 @@ function mountMote(host, opts = {}) {
        round trip is the contract: `Mote.mount(host, avatar.persona())` must
        produce the same animal. */
     persona: () => ({
-      name: mote.name, body: mote.body.id, paint: mote.paint,
+      name: mote.name, body: mote.body.id, paint: mote.paint, sun: { ...mote.sun },
       episodes: Object.fromEntries(Object.entries(mote.episodes).map(([k, steps]) => {
         const settings = mote.episodeOpts[k];
         return [k, settings && settings.mode && settings.mode !== "once"
@@ -2733,7 +2976,7 @@ function mountMote(host, opts = {}) {
       })),
     }),
 
-    /* One of the fourteen, by id, for anyone who wants the vocabulary
+    /* One catalogue animation, by id, for anyone who wants the vocabulary
        directly. */
     animate(id, hold) { playAnim(id, hold); return api; },
     animations: () => STATES.map((s) => ({ id: s.id, label: s.label })),
@@ -2746,6 +2989,9 @@ function mountMote(host, opts = {}) {
 
     /* A pointer position, in -1..1 across the element, for the rare moments
        it chooses to glance over. Optional: it has a life without one. */
+    /* ADR 0016: pointer updates supply future fixation targets; they do not
+       drag a deliberate glance already in progress.
+       docs/decisions/0016-attention-snapshots-targets-instead-of-tracking.md */
     pointer(x, y) {
       mote.cursor = { x: clamp(x, -1.6, 1.6), y: clamp(y, -1.6, 1.6), has: true };
       mote.lastInput = clock;
@@ -2839,6 +3085,7 @@ function mountMote(host, opts = {}) {
   }
 
   mote.ambient = opts.ambient !== false;
+  mote.theme = opts.theme === "dark" ? "dark" : "light";
   /* Checked at MOUNT, not at first play. A persona is usually a config file,
      and a typo in one should surface when the config is loaded rather than
      the first time some rare event fires in front of a user. */
@@ -2928,6 +3175,9 @@ function drawFrame(stage, t, dt) {
      answering it. Null means nothing is playing and nothing is still fading
      out, and the renderer can use the cached body path. */
   const pose = animPose(rest) || rest;
+  /* Keep the current catalogue act observable for embedders and diagnostics;
+     an empty value means the creature is between acts. */
+  stage.svg.setAttribute("data-mote-animation", anim.cur ? anim.cur.def.id : "");
   /* Compact agent rows keep their identity and status choreography, but they
      must not repeatedly lean their eyes toward ambient attention targets. The
      expression and animation channels can still change the face; this final
@@ -2946,11 +3196,13 @@ function drawFrame(stage, t, dt) {
     body: pose === rest && !bodyMorphing(mote) ? mote.body : undefined,
     sil: pose === rest && !bodyMorphing(mote) ? undefined : pose.sil,
     paint: mote.paint,
+    theme: mote.theme,
     x: gx * 7, y: gy * 5,
     gaze: displayedGaze, split: displayedSplit, eyes: displayedEyes,
     eyeAlpha: mote.ambient ? pose.eyeAlpha : 1,
     blinkLid: mote.ambient ? lidClose : 1,
-    dots: pose.dots, arcs: pose.arcs, notif: pose.notif, dotsBehind: pose.dotsBehind,
+    dots: pose.dots, arcs: pose.arcs, notif: pose.notif,
+    dotsBehind: pose.dotsBehind,
   });
 
   if (mote.onFace) mote.onFace(faceId, settled, MOODLINE[faceId]);

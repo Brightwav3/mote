@@ -6,8 +6,11 @@
 
 ## Context
 
-The owner asked for Bloub's fourteen animations — idle, thinking, wink, wide,
-alert, notify, exclaim, sleep, egg, hexagon, play, orbit, burst, comet.
+The owner first asked for Bloub's fourteen animations — idle, thinking, wink,
+wide, alert, notify, exclaim, sleep, egg, hexagon, play, orbit, burst, comet.
+The catalogue now keeps those as its measured core and adds eleven original
+Mote states: nod, nope, listening, peek, focus, celebrate, charge, glitch,
+melt, portal, and magnet.
 
 They are not expressions. An expression here is a face: eye geometry plus a head
 pose, drawn on whichever body you picked. Several of these animations *replace*
@@ -30,6 +33,10 @@ against Bloub's easing curves.
 The catalogue is **ported verbatim** from `bloub/src/bot/states.ts` and
 `decor.ts`, easings included, and a state stays what it is there: a pure
 function from local time to a complete pose. It owns no clock.
+
+Original Mote states follow the same pure pose contract but are not presented
+as Bloub ports. Their body transforms are composed onto the user's selected
+profile, so even the large motions preserve an editable Sun or any other body.
 
 `anim/player.js` owns the clock, and everything drawn is a **crossfade between
 an outgoing pose and an incoming one**. Ordinary life — the body you picked

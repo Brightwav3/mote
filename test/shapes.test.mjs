@@ -1,4 +1,4 @@
-/* The eight silhouettes must match Bloub's generators exactly. They are a port,
+/* The original eight silhouettes must match Bloub's generators exactly. They are a port,
    not a reimplementation (ADR 0001), so "close enough" is a failure: an earlier
    hand-rolled version used 240 samples, p-norm corner rounding and area
    normalisation, and produced eight shapes that were all subtly wrong. */
@@ -92,23 +92,35 @@ const REFERENCE = {
   goutte: norm(pfp(hull(0, 0.28, 0.66, 0, -0.96, 0.05), 0, 0), 1.04),
 }
 
-test('all eight silhouettes are present and sampled at 64 angles', async () => {
+test('all silhouettes are present and sampled at 64 angles', async () => {
   const { BODIES, PROFILE_SAMPLES } = await load(PURE)
   assert.equal(PROFILE_SAMPLES, 64)
   // joined, not deepEqual: sandbox arrays are cross-realm and fail a prototype check
-  assert.equal(BODIES.map((b) => b.id).join(','), Object.keys(REFERENCE).join(','))
+  assert.equal(BODIES.map((b) => b.id).join(','), [...Object.keys(REFERENCE), 'sun'].join(','))
   for (const b of BODIES) assert.equal(b.profile.length, 64, `${b.id} sample count`)
 })
 
 test('every radius matches the Bloub generator to floating point', async () => {
   const { BODIES } = await load(PURE)
-  for (const b of BODIES) {
+  for (const b of BODIES.filter((body) => REFERENCE[body.id])) {
     const ref = REFERENCE[b.id]
     for (let i = 0; i < ref.length; i++) {
       assert.ok(Math.abs(ref[i] - b.profile[i]) < 1e-12,
         `${b.id}[${i}] got ${b.profile[i]} want ${ref[i]}`)
     }
   }
+})
+
+/* ADR 0011: the Sun remains one valid 64-ray body at every public setting. */
+test('sun petal controls each change its profile', async () => {
+  const { makeSunBody } = await load(PURE)
+  const base = makeSunBody({ size: 0.23, count: 8, distance: 1.04, rotation: 0 }).profile.join(',')
+  for (const sun of [
+    { size: 0.3, count: 8, distance: 1.04, rotation: 0 },
+    { size: 0.23, count: 6, distance: 1.04, rotation: 0 },
+    { size: 0.23, count: 8, distance: 1.15, rotation: 0 },
+    { size: 0.23, count: 8, distance: 1.04, rotation: 15 },
+  ]) assert.notEqual(makeSunBody(sun).profile.join(','), base)
 })
 
 test('shapes are distinct from one another', async () => {

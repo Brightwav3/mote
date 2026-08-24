@@ -76,6 +76,8 @@ function leaveAnim() {
   anim.morphDur = EXIT_MORPH;
 }
 
+/* ADR 0015: large-field states are omitted under reduced motion.
+   docs/decisions/0015-large-field-motion-is-omitted-under-reduced-motion.md */
 function playAnim(id, hold) {
   const def = STATE_BY_ID[id];
   if (!def) return;
@@ -87,7 +89,9 @@ function playAnim(id, hold) {
   /* Whatever is showing becomes the thing we fade FROM — including a state
      that was itself only half-arrived. Its own clock keeps running. */
   anim.prev = anim.cur || { def: null, t0: clock };
-  anim.cur = { def, t0: clock, until: clock + Math.max(def.minDuration ?? 0, hold ?? def.duration) };
+  anim.cur = {
+    def, t0: clock, until: clock + Math.max(def.minDuration ?? 0, hold ?? def.duration),
+  };
   anim.morphT0 = clock;
   anim.morphDur = def.morph;
   if (def.blinkIn) blink(clock, 0.26);
@@ -113,15 +117,23 @@ function animBusy() {
 /* One state's contribution, resolved against ordinary life. `baseBody` and
    `baseFace` mean "that channel is not mine", so the body you picked and the
    expression the mood chose come through untouched. */
+/* ADR 0017: silhouette transforms carry facial anchors in the renderer.
+   docs/decisions/0017-body-transforms-carry-facial-anchors.md */
 function poseOfState(def, local, rest) {
   const p = def.pose(local);
+  const sil = def.baseBody ? {
+    ...rest.sil,
+    rot: p.sil.rot, cx: p.sil.cx, cy: p.sil.cy,
+    sx: p.sil.sx, sy: p.sil.sy,
+  } : p.sil;
   return {
-    sil: def.baseBody ? rest.sil : p.sil,
+    sil,
     gaze: def.baseFace ? rest.gaze : p.gaze,
     split: def.baseFace ? rest.split : p.split,
     eyes: def.baseFace ? rest.eyes : p.eyes,
     eyeAlpha: p.eyeAlpha,
-    dots: p.dots, arcs: p.arcs, notif: p.notif, dotsBehind: p.dotsBehind,
+    dots: p.dots, arcs: p.arcs, notif: p.notif,
+    dotsBehind: p.dotsBehind,
   };
 }
 
@@ -223,9 +235,12 @@ let nextAnimAt = 24;
 
 function maybeIdleAnim(t) {
   if (t < nextAnimAt) return;
-  nextAnimAt = t + rnd(26, 62);
-  if (animBusy() || mote.mode === "asleep" || t < mote.episodeUntil) return;
+  /* Sleep changes attention and mood, not whether the creature is alive. An
+     ambient avatar keeps its animation loop running after the long-idle mode
+     switch; reduced motion is handled by playAnim itself. */
+  if (animBusy() || t < mote.episodeUntil) return;
   if (mote.hold && t < mote.hold.until) return;
+  nextAnimAt = t + rnd(26, 62);
   let r = Math.random() * IDLE_ANIMS.reduce((n, [w]) => n + w, 0);
   for (const [w, id] of IDLE_ANIMS) if ((r -= w) <= 0) return playAnim(id);
 }

@@ -12,9 +12,10 @@ const decisions = join(root, 'docs', 'decisions')
 
 const REQUIRED = ['## Context', '## Decision', '## Rejected alternatives',
   '## Consequences', '## Enforced in', '## Explicit non-decisions']
+const isAdr = (f) => /^\d{4}-.*\.md$/.test(f)
 
 test('ADRs are numbered from 0001 with no gaps', async () => {
-  const files = (await readdir(decisions)).filter((f) => f.endsWith('.md')).sort()
+  const files = (await readdir(decisions)).filter(isAdr).sort()
   assert.ok(files.length > 0, 'no ADRs')
   files.forEach((f, i) => {
     const n = Number(f.slice(0, 4))
@@ -23,7 +24,7 @@ test('ADRs are numbered from 0001 with no gaps', async () => {
 })
 
 test('every ADR has all mandatory sections and no TBDs', async () => {
-  const files = (await readdir(decisions)).filter((f) => f.endsWith('.md'))
+  const files = (await readdir(decisions)).filter(isAdr)
   for (const f of files) {
     const body = await readFile(join(decisions, f), 'utf8')
     for (const section of REQUIRED) {
@@ -41,7 +42,7 @@ test('CLAUDE.md and AGENTS.md are byte-identical', async () => {
 })
 
 test('every path an ADR claims to govern exists and cites it back', async () => {
-  const files = (await readdir(decisions)).filter((f) => f.endsWith('.md'))
+  const files = (await readdir(decisions)).filter(isAdr)
   for (const f of files) {
     const body = await readFile(join(decisions, f), 'utf8')
     const block = body.split('## Enforced in')[1].split('##')[0]

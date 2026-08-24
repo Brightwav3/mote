@@ -29,6 +29,30 @@ const avatar = Mote.mount(document.getElementById('avatar'), {
 avatar.onSay((text) => bubble.textContent = text)
 ```
 
+Pass the host theme to keep eye ink consistent across the whole cast:
+
+```js
+const avatar = Mote.mount(host, { theme: 'dark' })
+avatar.setTheme('light') // when the host UI switches
+```
+
+In `dark`, every body has dark eyes except Ink, which has white eyes. In
+`light`, every body has white eyes except White, which has dark eyes. Theme is
+host context, so it is deliberately absent from `skin()` and `persona()`.
+
+The `sun` body keeps Mote's existing face and has editable petals:
+
+```js
+avatar.setSkin({
+  body: 'sun',
+  sun: { size: 0.23, count: 8, distance: 1.04, rotation: 0 },
+})
+```
+
+`size` accepts 0.14–0.34, `count` 5–12, `distance` 0.9–1.18, and
+`rotation` is clockwise in degrees. Values are clamped to safe ranges and the
+four settings survive `skin()` and `persona()` round trips.
+
 For compact presence surfaces, `avatar.snapshot(host, skin)` copies the last
 rendered SVG frame into a decorative host without mounting another live
 creature. The optional `skin` can choose a body, paint and name for a distinct
@@ -100,7 +124,7 @@ avatar over a spinner.
 
 Also on the handle: `state()` for what it was last put into, `event(e)` and
 `runStream(s)` for a model stream, `setSkin({body, paint, name})`, `skin()`, `say(text, ms)`,
-`look(mode, seconds)`, `animate(id, hold)` for any of the fourteen animations
+`look(mode, seconds)`, `animate(id, hold)` for any catalogue animation
 by name, `pointer(x, y)` for the rare moments it glances over, `poke()`,
 `after(seconds, fn)` to schedule on the animation clock rather than the wall
 clock, `start()` / `stop()` / `tick(now)` / `destroy()`, and the catalogues
@@ -169,7 +193,7 @@ uses, so it drops in as an icon or an avatar.
 src/
   lib/          maths, sphere geometry, springs
   faces/        the seventeen poses and the expression chooser
-  bodies/       the eight silhouettes and the palette
+  bodies/       the nine silhouettes and the palette
   creature/     affect, temperament, gaze, behaviour, scripts
   render/       SVG stage
   embed/        the public API: mount, the agent-state table, the stream adapter

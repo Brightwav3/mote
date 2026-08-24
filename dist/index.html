@@ -185,9 +185,41 @@ button { font: inherit; color: inherit; }
 @media (max-width: 520px) { .faces .tiles { grid-template-columns: repeat(5, 1fr); } }
 
 /* ══ the living page ═════════════════════════════════════════════════════ */
-#live { flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 32px 20px 40px; }
-#field { width: min(560px, 88vw); aspect-ratio: 1; touch-action: none; }
+#live { flex-direction: column; align-items: center; gap: 18px; padding: 54px 20px 56px; }
+#lab { flex-direction: column; align-items: center; gap: 18px; padding: 54px 20px 56px; }
+#lab > h1 { margin: 14px 0 0; font-size: clamp(30px, 6vw, 48px); }
+#lab > .note { margin: -8px 0 8px; max-width: 520px; text-align: center; }
+#lab-hero { display: grid; justify-items: center; }
+#lab-hero { width: min(620px, 96vw); min-height: 440px; }
+#lab-hero .live-hero { width: 100%; }
+#lab-hero #field { width: 100%; margin: 18px 0; }
+#lab-hero #field svg { overflow: visible; }
+#lab .catalogue { width: min(760px, 100%); }
+.live-hero { display: grid; justify-items: center; gap: 6px; }
+#field { width: min(320px, 72vw); aspect-ratio: 1; touch-action: none; }
 #field svg { width: 100%; height: 100%; display: block; }
+#field.is-laughing [data-mote-eye] {
+  animation: laugh-eyes 640ms cubic-bezier(.45, 0, .55, 1) 2;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+#field.is-surprised [data-mote-eye] {
+  animation: surprise-eyes 900ms cubic-bezier(.4, 0, .2, 1) 1;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes laugh-eyes {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(-9px); }
+  72% { transform: translateY(2px); }
+}
+@keyframes surprise-eyes {
+  0%, 18%, 82%, 100% { scale: .62; }
+  45%, 58% { scale: 1.65; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #field.is-laughing [data-mote-eye] { animation: none; }
+}
 #given { margin: 0; font-size: clamp(22px, 4vw, 30px); }
 #mood { margin: 0; color: var(--mut); font-size: 14.5px; min-height: 1.5em; text-align: center; }
 #speech {
@@ -196,6 +228,33 @@ button { font: inherit; color: inherit; }
   color: var(--fg); opacity: 0; transition: opacity .3s ease;
 }
 #speech.on { opacity: 1; }
+
+.catalogues {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px;
+  width: min(900px, 100%); align-items: start;
+}
+.catalogue {
+  padding: 20px; border: 1.5px solid var(--line); border-radius: 20px;
+  background: color-mix(in srgb, var(--sunk) 48%, transparent);
+}
+.catalogue h2 {
+  margin: 0 0 14px; font-size: 13px; font-weight: 500;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--mut);
+}
+.catalogue-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 8px; }
+.catalogue-tile {
+  min-width: 0; padding: 7px 3px 6px; border: 1.5px solid transparent;
+  border-radius: 13px; background: transparent; cursor: pointer;
+  color: var(--mut); transition: border-color .14s ease, color .14s ease, background .14s ease;
+}
+.catalogue-tile:hover { color: var(--fg); background: color-mix(in srgb, var(--bg) 55%, transparent); }
+.catalogue-tile[aria-pressed="true"] { border-color: var(--focus); color: var(--fg); background: var(--bg); }
+.catalogue-tile:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.catalogue-tile svg { display: block; width: 100%; aspect-ratio: 1; }
+.catalogue-tile span { display: block; margin-top: 3px; font-size: 12px; line-height: 1.15; text-align: center; }
+@media (max-width: 760px) {
+  .catalogues { grid-template-columns: 1fr; width: min(460px, 100%); }
+}
 
 .acts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 560px; margin-top: 6px; }
 .acts button {
@@ -228,6 +287,13 @@ button { font: inherit; color: inherit; }
 .note code {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
 }
+.sun-controls {
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px;
+  max-width: 390px; margin: 10px auto 0;
+}
+.sun-controls[hidden] { display: none; }
+.sun-controls label { color: var(--mut); font-size: 12px; }
+.sun-controls input { display: block; width: 100%; accent-color: var(--focus); }
 #persona-out {
   display: block; width: 100%; height: 132px; resize: vertical;
   padding: 10px 12px; border-radius: 11px;
@@ -249,6 +315,18 @@ button { font: inherit; color: inherit; }
 .change:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 /* Two of them share the corner; the second one sits inboard of the first. */
 #photo-open { right: 116px; }
+#lab-open { right: 208px; }
+
+.theme-switch {
+  position: fixed; top: 18px; left: 18px; z-index: 4;
+  padding: 7px 14px; border-radius: 999px; cursor: pointer;
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
+  border: 1.5px solid var(--line); color: var(--mut); font-size: 14px;
+  backdrop-filter: blur(10px);
+  transition: border-color .14s ease, color .14s ease, background .2s ease;
+}
+.theme-switch:hover { border-color: var(--focus); color: var(--fg); }
+.theme-switch:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 
 .back {
   background: none; border: none; cursor: pointer; padding: 4px;
@@ -263,6 +341,8 @@ button { font: inherit; color: inherit; }
 }
 </style>
 
+<button class="theme-switch" id="theme-switch" type="button">Theme</button>
+
 <!-- ══ 1 · make one ══════════════════════════════════════════════════════ -->
 <section class="view on" id="make">
   <p class="step-label">One of a kind</p>
@@ -274,6 +354,12 @@ button { font: inherit; color: inherit; }
     <div>
       <h2>Body</h2>
       <div class="tiles" id="shapes"></div>
+      <div class="sun-controls" id="sun-controls" hidden>
+        <label>Petal size<input name="size" type="range" min="0.14" max="0.34" step="0.01"></label>
+        <label>Petal count<input name="count" type="range" min="5" max="12" step="1"></label>
+        <label>Petal distance<input name="distance" type="range" min="0.9" max="1.18" step="0.01"></label>
+        <label>Petal rotation<input name="rotation" type="range" min="0" max="359" step="1"></label>
+      </div>
     </div>
     <div>
       <h2>Colour</h2>
@@ -292,17 +378,25 @@ button { font: inherit; color: inherit; }
 
 <!-- ══ 2 · live with it ══════════════════════════════════════════════════ -->
 <section class="view" id="live">
+  <button class="change" id="lab-open" type="button">Experiments</button>
   <button class="change" id="photo-open" type="button">Photo</button>
   <button class="change" id="change" type="button">Change</button>
-  <div id="field"></div>
-  <h1 class="serif" id="given">Mote</h1>
-  <p id="mood"></p>
-  <p id="speech"></p>
-  <div class="acts" id="acts"></div>
-  <details class="show">
-    <summary>Animations</summary>
-    <div class="acts" id="anims"></div>
-  </details>
+  <div class="live-hero">
+    <div id="field"></div>
+    <h1 class="serif" id="given">Mote</h1>
+    <p id="mood"></p>
+    <p id="speech"></p>
+  </div>
+  <div class="catalogues">
+    <section class="catalogue" aria-labelledby="expression-title">
+      <h2 id="expression-title">Expression</h2>
+      <div class="catalogue-grid" id="expressions"></div>
+    </section>
+    <section class="catalogue" aria-labelledby="animation-title">
+      <h2 id="animation-title">Animation</h2>
+      <div class="catalogue-grid" id="animations"></div>
+    </section>
+  </div>
   <details class="show">
     <summary>Persona</summary>
     <p class="note">What this creature is, as JSON. Hand it back to
@@ -315,7 +409,20 @@ button { font: inherit; color: inherit; }
   </details>
 </section>
 
-<!-- ══ 3 · take its picture ══════════════════════════════════════════════ -->
+<!-- ══ 3 · original Mote animation experiments ══════════════════════════ -->
+<section class="view" id="lab">
+  <p class="step-label">Motion laboratory</p>
+  <h1 class="serif">New animations</h1>
+  <p class="note">Original Mote movements, kept separate from the Bloub catalogue.</p>
+  <div id="lab-hero"></div>
+  <section class="catalogue" aria-labelledby="experimental-animation-title">
+    <h2 id="experimental-animation-title">Experiments</h2>
+    <div class="catalogue-grid" id="experimental-animations"></div>
+  </section>
+  <button class="back" id="lab-back" type="button">Back to Mote</button>
+</section>
+
+<!-- ══ 4 · take its picture ══════════════════════════════════════════════ -->
 <section class="view" id="photo">
   <p class="step-label">Hold still</p>
   <h1 class="serif">Photoroom</h1>
@@ -495,31 +602,31 @@ const FACES = [
   { id: "round",       v: 0.34, a: 0.72, d: -0.10, yaw:   5, pitch:  -2, roll:   0, split: 16.60,
     eyes: [eye(0.30, 0.30, 0, 1), eye(0.30, 0.30, 0, 1)] },   // mine, not Bloub's
   { id: "surprised",   v: 0.05, a: 0.88, d: -0.20, yaw:   3, pitch:  -3, roll:   0, split: 19.00,
-    eyes: [eye(0.45, 0.47, 0, 1), eye(0.45, 0.47, -0, 1)] },
+    eyes: [eye(0.46, 0.46, 0, 1), eye(0.46, 0.46, 0, 1)] },
   { id: "excited",     v: 0.75, a: 0.95, d: 0.50, yaw:   6, pitch: -14, roll:   0, split: 19.50,
     eyes: [eye(0.4, 0.56, -10, 1), eye(0.4, 0.56, 10, 1)] },
   { id: "happy",       v: 0.70, a: 0.50, d: 0.30, yaw:   5, pitch:   9, roll:   0, split: 17.00,
-    eyes: [eye(0.27, 0.17, 14, 1), eye(0.27, 0.17, -14, 1)] },
+    eyes: [eye(0.28, 0.28, 0, 1), eye(0.28, 0.28, 0, 1)] },
   { id: "laughing",    v: 0.88, a: 0.76, d: 0.50, yaw:   4, pitch:  14, roll:   0, split: 18.00,
-    eyes: [eye(0.34, 0.13, 20, 1), eye(0.34, 0.13, -20, 1)] },
+    eyes: [eye(0.4, 0.56, -10, 1), eye(0.4, 0.56, 10, 1)] },
   { id: "proud",       v: 0.60, a: 0.40, d: 0.90, yaw:   5, pitch:  17, roll:   0, split: 17.00,
     eyes: [eye(0.3, 0.15, 18, 1), eye(0.3, 0.15, -18, 1)] },
   { id: "shy",         v: 0.28, a: 0.34, d: -0.60, yaw: -19, pitch: -14, roll:  -7, split: 14.00,
-    eyes: [eye(0.17, 0.3, 0, 1), eye(0.17, 0.3, -0, 1)] },
+    eyes: [eye(0.16, 0.34, 28, 1), eye(0.16, 0.34, -28, 1)] },
   { id: "confused",    v: -0.28, a: 0.55, d: -0.40, yaw: -14, pitch:   3, roll:   8, split: 16.50,
     eyes: [eye(0.2, 0.44, -18, 1), eye(0.28, 0.17, 14, 1)] },
   { id: "suspicious",  v: -0.38, a: 0.45, d: 0.20, yaw:  12, pitch:   6, roll:  -6, split: 16.00,
     eyes: [eye(0.21, 0.4, 0, 1), eye(0.22, 0.15, 0, 1)] },
   { id: "sad",         v: -0.72, a: 0.24, d: -0.50, yaw:   3, pitch: -13, roll:   0, split: 16.00,
-    eyes: [eye(0.22, 0.4, -28, 1), eye(0.22, 0.4, 28, 1)] },
+    eyes: [eye(0.22, 0.4, 28, 1), eye(0.22, 0.4, -28, 1)] },
   { id: "angry",       v: -0.82, a: 0.78, d: 0.70, yaw:   3, pitch:   7, roll:   0, split: 17.00,
-    eyes: [eye(0.34, 0.15, 30, 1), eye(0.34, 0.15, -30, 1)] },
+    eyes: [eye(0.4, 0.1, 38, 1), eye(0.4, 0.1, -38, 1)] },
   { id: "scared",      v: -0.62, a: 0.96, d: -0.90, yaw:   2, pitch: -20, roll:   0, split: 20.50,
     eyes: [eye(0.4, 0.6, 0, 1), eye(0.4, 0.6, -0, 1)] },
   { id: "unimpressed", v: -0.20, a: 0.12, d: 0.30, yaw: -22, pitch:   2, roll:   0, split: 16.00,
     eyes: [eye(0.3, 0.12, 0, 1), eye(0.3, 0.12, -0, 1)] },
   { id: "sleepy",      v: 0.05, a: 0.02, d: -0.10, yaw:   6, pitch:  -9, roll:  -3, split: 16.00,
-    eyes: [eye(0.2, 0.42, 0, 0.42), eye(0.2, 0.42, -0, 0.42)] },
+    eyes: [eye(0.34, 0.2, 0, 0.24), eye(0.34, 0.2, -0, 0.24)] },
 ];
 
 /* Shepard weights over all seventeen. Arousal counts heavier than valence
@@ -652,6 +759,7 @@ function blendFace(v, a, d) {
 }
 
 /* Damped spring. Values carry momentum, so mood cannot be assigned — only
+
    pushed. `k` sets how hard it is pulled home, `c` how much it fights motion. */
 class Spring {
   constructor(value, k, c) { this.x = value; this.v = 0; this.home = value; this.k = k; this.c = c; }
@@ -744,7 +852,10 @@ class Gaze {
 }
 
 
-/* ── BODIES ───────────────────────────────────────────────────────────────
+/* ADR 0001: these generators are faithful Bloub ports, not approximations.
+   docs/decisions/0001-port-bloub-verbatim.md
+
+   ── BODIES ───────────────────────────────────────────────────────────────
    Ported from Bloub's `shape.ts` / `skins.ts`, function for function, rather
    than reimplemented. My own versions were close in spirit and wrong in every
    particular: 240 samples instead of 64, corners rounded by a p-norm soft
@@ -755,6 +866,7 @@ class Gaze {
 
    A shape is a radial profile: one radius per angle, all shapes sampled at the
    same angles, so any two correspond point for point.                       */
+
 /* ADR 0001: generators ported from bloub/src/bot/shape.ts and skins.ts, pinned
    by test/shapes.test.mjs. 64 samples, Minkowski corner rounding and peak-radius
    normalisation are load-bearing. docs/decisions/0001-port-bloub-verbatim.md */
@@ -887,6 +999,39 @@ const cloud = normalizeProfile(unionOfCirclesProfile([
 const droplet = normalizeProfile(
   profileFromPolygon(hullOfCircles(0, 0.28, 0.66, 0, -0.96, 0.05), 0, 0), 1.04);
 
+/* ADR 0011: Blobatar's sun is adapted as one radial profile so it keeps
+   Mote's renderer, face fitting and morphing. The four authored controls are
+   deliberately body data, not a second decoration layer.
+   docs/decisions/0011-editable-sun-body.md */
+const SUN_DEFAULTS = Object.freeze({ size: 0.23, count: 8, distance: 1.04, rotation: 0 });
+function sunOptions(value = {}) {
+  return {
+    size: clamp(Number(value.size) || SUN_DEFAULTS.size, 0.14, 0.34),
+    count: Math.round(clamp(Number(value.count) || SUN_DEFAULTS.count, 5, 12)),
+    distance: clamp(Number(value.distance) || SUN_DEFAULTS.distance, 0.9, 1.18),
+    rotation: ((Number(value.rotation) || 0) % 360 + 360) % 360,
+  };
+}
+function sunProfile(value) {
+  const p = sunOptions(value);
+  const off = rad(p.rotation);
+  const sizeK = (p.size - 0.14) / 0.2;
+  const distanceK = (p.distance - 0.9) / 0.28;
+  const depth = 0.13 + sizeK * 0.18 + distanceK * 0.14;
+  /* A raised cosine has a flat derivative at both the valley and the tip, so
+     every lobe grows out of the core instead of reading as a circle glued to
+     it. Larger petals are also broader, matching what "size" means by eye. */
+  const roundness = 1.7 - sizeK * 0.75;
+  return normalizeProfile(ANGLES.map((a) => {
+    const wave = 0.5 + 0.5 * Math.cos((a - off) * p.count);
+    return 1 - depth + depth * Math.pow(wave, roundness);
+  }), 1.04);
+}
+function makeSunBody(value) {
+  const sun = sunOptions(value);
+  return { id: "sun", label: "Sun", profile: sunProfile(sun), sun };
+}
+
 /* Capsule lying down: the hull of two discs side by side. Not normalised —
    the original leaves it alone. */
 const capsule = profileFromPolygon(hullOfCircles(-0.42, 0, 0.62, 0.42, 0, 0.62), 0, 0);
@@ -905,6 +1050,7 @@ const BODIES = [
   { id: "hexagone", label: "Hexagon", profile: regularPolygonProfile(6, 1.04, 0.26, 0) },
   { id: "nuage", label: "Cloud", profile: cloud },
   { id: "goutte", label: "Droplet", profile: droplet },
+  makeSunBody(SUN_DEFAULTS),
 ];
 const BODY_BY_ID = Object.fromEntries(BODIES.map((b) => [b.id, b]));
 
@@ -917,12 +1063,12 @@ const BODY_BY_ID = Object.fromEntries(BODIES.map((b) => [b.id, b]));
    reshape. So it is built once per body and never again; rebuilding it every
    frame was pure waste. */
 const TENSION = 1 / 6;   // Bloub's closedPath tension
-const PATH_CACHE = new Map();
+const PATH_CACHE = new WeakMap();
 function profilePath(body, R) {
-  const hit = PATH_CACHE.get(body.id);
+  const hit = PATH_CACHE.get(body);
   if (hit) return hit;
   const d = buildPath(body.profile, R);
-  PATH_CACHE.set(body.id, d);
+  PATH_CACHE.set(body, d);
   return d;
 }
 
@@ -1069,15 +1215,9 @@ const PAINTS = [
   ["Pink", "#e152b0"], ["Grey", "#a3a3a3"], ["White", "#ffffff"],
 ];
 
-/* The eyes are white on every body but the white one, which takes dark ink.
-   This is Bloub's own arrangement — a single `--ink` for the whole cast — and
-   it is a look, not a contrast optimum: measured, white on Amber is 1.75:1 and
-   on Grey 1.93:1, well under the 3:1 that WCAG 1.4.11 asks of a non-text
-   graphic. Chosen deliberately over the best-of-two rule that used to live
-   here, which kept every paint above 4.5:1 but gave the creature dark eyes on
-   half the palette and light eyes on the other half — one animal wearing two
-   different faces depending on its colour. `contrastRatio` stays below so the
-   cost stays measurable rather than forgotten. */
+/* ADR 0012: eye ink follows the host theme as one cast-wide colour, with only
+   the matching endpoint inverted so a black or white body keeps its face. */
+const BLACK_BODY = "#0a0a0c";
 const WHITE_BODY = "#ffffff";
 const INKS = ["#14181A", "#FFFFFF"];
 
@@ -1093,8 +1233,10 @@ function contrastRatio(a, b) {
   return (hi + 0.05) / (lo + 0.05);
 }
 
-function eyeInkFor(hex) {
-  return hex.toLowerCase() === WHITE_BODY ? INKS[0] : INKS[1];
+function eyeInkFor(hex, theme = "light") {
+  const paint = hex.toLowerCase();
+  if (theme === "dark") return paint === BLACK_BODY ? INKS[1] : INKS[0];
+  return paint === WHITE_BODY ? INKS[0] : INKS[1];
 }
 
 /* ── KEEPING THE EYES INSIDE THE BODY ─────────────────────────────────────
@@ -1417,6 +1559,8 @@ function dotPulse(t, index) {
   return clamp(k * 2);
 }
 
+/* ADR 0015: definitions mark large-field motion explicitly with `big`.
+   docs/decisions/0015-large-field-motion-is-omitted-under-reduced-motion.md */
 const STATES = [
   {
     id: "idle", label: "Idle", duration: 2.4, morph: 0.45,
@@ -1470,24 +1614,20 @@ const STATES = [
   },
 
   {
-    big: true, id: "alert", label: "Alert", duration: 2.4, minDuration: 2, morph: 0.45,
-    blinkIn: false, baseFace: false, baseBody: false,
+    /* Keep the public `alert` id as a compatibility alias. In the picker this
+       slot is now Writing: the gaze repeatedly scans a short line, drops, and
+       starts again while the chosen body stays recognisable. */
+    id: "alert", label: "Writing", duration: 2.4, minDuration: 2, morph: 0.35,
+    blinkIn: true, baseFace: false, baseBody: true,
     pose: (t) => {
-      // Measured travel: -0.087 to +0.732 in 1.5s, ease-in-out, micro-overshoot.
-      const travel = EASE.inOutCubic(clamp(t / 1.5)) * 0.82 - 0.087;
-      const back = t > 1.6 ? clamp((t - 1.6) / 0.4) : 0;
-      const x = travel * (1 - back) + 0.1 * back;
-      // 2.5Hz secondary buzz, bar and dot in antiphase.
-      const buzz = Math.sin(t * 2.5 * TAU) * 0.005;
-      const tilt = (17.7 * Math.PI) / 180;
+      const line = (t % 0.8) / 0.8;
+      const reset = line > 0.88 ? (line - 0.88) / 0.12 : 0;
+      const yaw = -18 + line * 34 - reset * 34;
+      const bob = Math.sin(t * 5 * TAU) * 1.4;
       return baseState({
-        sil: barItalic({ rot: tilt, cx: x, cy: -0.325 - buzz }),
-        eyeAlpha: 0,
-        dots: [{
-          x: x - Math.sin(tilt) * 0.58,
-          y: -0.325 + Math.cos(tilt) * 0.58 + buzz * 2.8,
-          r: 0.118, d: TEAR, rot: (tilt * 180) / Math.PI, opacity: 1,
-        }],
+        gaze: { yaw, pitch: 18 + bob, roll: -4 },
+        split: 15.5,
+        eyes: pair(0.29, 0.32),
       });
     },
   },
@@ -1631,6 +1771,138 @@ const STATES = [
   },
 ];
 
+/* Original Mote choreography. Unlike the fourteen measured Bloub states
+   above, these deliberately keep the chosen body and move it through the
+   transform channels that `poseOfState` composes onto the resting profile. */
+const beat = (t, duration) => clamp(t / duration);
+const pulse01 = (t) => 0.5 - 0.5 * Math.cos(clamp(t) * TAU);
+
+STATES.push(
+  {
+    id: "nod", label: "Nod", duration: 1.25, morph: 0.2,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.25) * Math.PI * 2) * Math.sin(beat(t, 1.25) * Math.PI);
+      return baseState({ sil: circleSil(1, { cy: k * 0.13, sy: 1 - Math.max(0, k) * 0.06 }),
+        gaze: { yaw: 0, pitch: 8 + k * 24, roll: 0 }, eyes: pair(0.24, 0.4) });
+    },
+  },
+  {
+    id: "nope", label: "Nope", duration: 1.15, morph: 0.18,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const fade = Math.sin(beat(t, 1.15) * Math.PI);
+      return baseState({ gaze: { yaw: Math.sin(t * TAU * 3.2) * 34 * fade, pitch: 0, roll: 0 },
+        eyes: pair(0.23, 0.4) });
+    },
+  },
+  {
+    id: "listening", label: "Listening", duration: 1.8, morph: 0.25,
+    blinkIn: true, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.8) * Math.PI);
+      return baseState({ sil: circleSil(1, { rot: -0.13 * k, cx: -0.06 * k }),
+        gaze: { yaw: -28 * k, pitch: -4, roll: -10 * k }, split: 17,
+        eyes: [eye(0.34 + 0.13 * k, 0.46 + 0.12 * k), eye(0.23, 0.4)] });
+    },
+  },
+  {
+    id: "peek", label: "Peek", duration: 1.55, morph: 0.22,
+    blinkIn: true, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.55) * Math.PI);
+      return baseState({ gaze: { yaw: 64 * k, pitch: -3, roll: 8 * k }, split: 13,
+        eyes: pair(0.22, 0.42), eyeAlpha: clamp(k * 4) });
+    },
+  },
+  {
+    id: "focus", label: "Focus", duration: 1.65, morph: 0.24,
+    blinkIn: true, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = EASE.inOutCubic(Math.sin(beat(t, 1.65) * Math.PI));
+      return baseState({ gaze: { yaw: 0, pitch: 0, roll: 0 }, split: 16 - 6 * k,
+        eyes: pair(0.25 + 0.05 * k, 0.42 - 0.27 * k) });
+    },
+  },
+  {
+    big: true, id: "celebrate", label: "Celebrate", duration: 1.8, morph: 0.2,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const p = beat(t, 1.8), jump = Math.sin(p * Math.PI) * Math.sin(p * Math.PI * 3);
+      const pop = pulse01(clamp(t / 0.7));
+      return baseState({ sil: circleSil(1, { cy: -Math.max(0, jump) * 0.34, sy: 1 + Math.max(0, jump) * 0.08 }),
+        gaze: { yaw: 0, pitch: -14, roll: 0 }, split: 19, eyes: pair(0.36, 0.48),
+        dots: Array.from({ length: 8 }, (_, i) => ({ x: Math.cos(i * TAU / 8) * (0.75 + pop * 0.5),
+          y: Math.sin(i * TAU / 8) * (0.75 + pop * 0.5), r: 0.055 + 0.025 * pop,
+          opacity: Math.sin(p * Math.PI) })) });
+    },
+  },
+  {
+    big: true, id: "charge", label: "Charge", duration: 2, morph: 0.28,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const p = beat(t, 2), k = Math.sin(p * Math.PI), buzz = Math.sin(t * 34) * k;
+      return baseState({ sil: circleSil(1, { cx: buzz * 0.018, sx: 1 + k * 0.18, sy: 1 - k * 0.25 }),
+        gaze: { yaw: 0, pitch: 8, roll: 0 }, split: 13, eyes: pair(0.31, 0.16 + 0.1 * (1 - k)),
+        dots: Array.from({ length: 6 }, (_, i) => ({ x: Math.cos(i * TAU / 6 + t) * (1.3 - k * 0.55),
+          y: Math.sin(i * TAU / 6 + t) * (1.3 - k * 0.55), r: 0.045, opacity: k })) });
+    },
+  },
+  {
+    id: "glitch", label: "Glitch", duration: 1.35, morph: 0.08,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const active = Math.sin(beat(t, 1.35) * Math.PI);
+      const snap = Math.sin(Math.floor(t * 18) * 12.9898) * active;
+      return baseState({ sil: circleSil(1, { cx: snap * 0.12, sx: 1 + Math.abs(snap) * 0.08 }),
+        gaze: { yaw: snap * 42, pitch: snap * 9, roll: snap * 8 }, split: 17 + snap * 5,
+        eyes: [eye(0.27, 0.39), eye(0.27, 0.39)],
+        dots: [-0.45, 0, 0.45].map((y, i) => ({ x: -snap * (0.45 + i * 0.12), y,
+          r: 0.035 + i * 0.01, opacity: active })) });
+    },
+  },
+  {
+    big: true, id: "melt", label: "Puddle", duration: 2.25, morph: 0.35,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 2.25) * Math.PI);
+      return baseState({ sil: circleSil(1, { cy: 0.48 * k, sx: 1 + 0.46 * k, sy: 1 - 0.68 * k }),
+        gaze: { yaw: 0, pitch: 24 * k, roll: 0 }, split: 17,
+        eyes: pair(0.26 + 0.1 * k, 0.4 - 0.26 * k) });
+    },
+  },
+  {
+    big: true, id: "portal", label: "Portal", duration: 2.4, morph: 0.3,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const p = beat(t, 2.4);
+      const out = EASE.inOutCubic(clamp(p / 0.24));
+      const inside = p >= 0.24 && p < 0.62;
+      const back = EASE.outCubic(clamp((p - 0.62) / 0.25));
+      const scale = inside ? 0.015 : p < 0.62 ? 1 - out * 0.985 : 0.015 + back * 0.985;
+      const cx = p < 0.62 ? -0.56 * out : 0.56 * (1 - back);
+      const portalX = p < 0.5 ? -0.56 : 0.56;
+      const ringOpacity = Math.sin(p * Math.PI);
+      return baseState({ sil: circleSil(1, { sx: scale, sy: scale, cx, rot: t * 5 }),
+        gaze: { yaw: p < 0.62 ? -35 : 35, pitch: 0, roll: t * 22 }, eyes: pair(0.22, 0.4),
+        eyeAlpha: p < 0.62 ? 1 - clamp(p / 0.14) : clamp((p - 0.68) / 0.1),
+        arcs: RINGS.slice(0, 3).map((s, i) => ({ id: `pt${i}`,
+          seed: { ...s, a: 0.58 + i * 0.13, k: 0.12, cx: portalX }, t,
+          opacity: ringOpacity })) });
+    },
+  },
+  {
+    id: "magnet", label: "Magnet", duration: 1.9, morph: 0.26,
+    blinkIn: false, baseFace: false, baseBody: true,
+    pose: (t) => {
+      const k = Math.sin(beat(t, 1.9) * Math.PI);
+      return baseState({ sil: circleSil(1, { cx: 0.28 * k, sx: 1 + 0.34 * k, sy: 1 - 0.09 * k }),
+        gaze: { yaw: 58 * k, pitch: -4, roll: 4 * k }, split: 15 - 3 * k,
+        eyes: [eye(0.25 + 0.08 * k, 0.42), eye(0.25 + 0.15 * k, 0.42)] });
+    },
+  },
+);
+
 const STATE_BY_ID = Object.fromEntries(STATES.map((s) => [s.id, s]));
 /* Reading order of the full sequence, as cut in the reference video. */
 const SEQUENCE = STATES.map((s) => s.id);
@@ -1694,7 +1966,6 @@ function makeStage(host, opts = {}) {
   });
   add(mask, "rect", { x: "-150", y: "-150", width: "300", height: "300", fill: "#fff" });
   const notch = add(mask, "circle", { r: "0", fill: "#000" });
-
   const wrap = add(svg, "g");
   const arcsBack = add(wrap, "g");
   const dotsBack = add(wrap, "g");
@@ -1703,14 +1974,14 @@ function makeStage(host, opts = {}) {
   const eyes = [0, 1].map(() => {
     const outer = add(wrap, "g");
     const inner = add(outer, "g");
-    return { outer, inner, rect: add(inner, "rect", { rx: "9" }) };
+    return { outer, inner, rect: add(inner, "rect", { rx: "9", "data-mote-eye": "true" }) };
   });
   const arcsFront = add(wrap, "g");
   const dotsFront = add(wrap, "g");
   const pip = add(wrap, "circle", { r: "0", fill: NOTIF_BLUE });
 
   return {
-    uid, svg, defs, notch, pip,
+    uid, svg, defs, notch, pip, theme: opts.theme || "light",
     arcsBack, arcsFront, dotsBack, dotsFront,
     wrap, bodyG, body, eyes,
     dotPool: [], arcPool: new Map(),
@@ -1768,9 +2039,11 @@ function drawStage(st, pose) {
   if (pose.sil) {
     st.body.setAttribute("d", silPath(pose.sil, R));
     st.shownBody = null;
-  } else if (st.shownBody !== pose.body.id) {
+  } else if (st.shownBody !== pose.body) {
     st.body.setAttribute("d", profilePath(pose.body, R));
-    st.shownBody = pose.body.id;
+    /* ADR 0011: editable Sun profiles share the public id `sun`, so identity
+       here must be the immutable body object rather than its catalogue id. */
+    st.shownBody = pose.body;
   }
   st.body.setAttribute("fill", pose.paint);
   st.wrap.setAttribute("transform", `translate(${r2(pose.x)},${r2(pose.y)})`);
@@ -1786,15 +2059,34 @@ function drawStage(st, pose) {
      docs/decisions/0010-eye-containment-solved-not-authored.md */
   const fit = eyeFitFor(pose.sil ? pose.sil.radii : pose.body.profile,
                         frames, pose.eyes, R);
-  const ink = eyeInkFor(pose.paint);
-  const alpha = pose.eyeAlpha === undefined ? 1 : pose.eyeAlpha;
+  /* ADR 0012: theme belongs to the host surface, not to a body colour. */
+  const ink = eyeInkFor(pose.paint, pose.theme || st.theme);
+  /* Animations use `eyeAlpha: 0` when the creature stops being a creature —
+     a burst, a comet, the "!" bar. There is no face on those shapes, so the
+     eyes go entirely rather than hanging on at a floor: a pair of eyes on a
+     comet reads as a bug, not as identity. The identity is carried by the
+     paint and the silhouette for those two seconds, and the animation ramps
+     the alpha back up as the body returns. A blink is a separate lid
+     transform and remains fully intact. */
+  const alpha = pose.eyeAlpha === undefined ? 1 : clamp(pose.eyeAlpha, 0, 1);
+  /* ADR 0017: body transforms carry facial anchors.
+     docs/decisions/0017-body-transforms-carry-facial-anchors.md
+
+     A posed silhouette can stretch, rotate, or travel. Its eyes belong to
+     that material, so their centres follow the same transform instead of
+     remaining pinned to the stage while the body moves around them. */
+  const sil = pose.sil || { sx: 1, sy: 1, rot: 0, cx: 0, cy: 0 };
+  const cr = Math.cos(sil.rot || 0), sr = Math.sin(sil.rot || 0);
   frames.forEach((p, i) => {
     const n = st.eyes[i];
     const e = pose.eyes[i];
     const w = e.w * R * fit, h = e.h * R * fit;
     const lidScale = 0.06 + 0.94 * clamp(e.open * pose.blinkLid);
+    const ex = p.x * fit * (sil.sx ?? 1), ey = p.y * fit * (sil.sy ?? 1);
+    const tx = ex * cr - ey * sr + (sil.cx || 0) * R;
+    const ty = ex * sr + ey * cr + (sil.cy || 0) * R;
     n.outer.setAttribute("transform",
-      `translate(${r2(p.x * fit)},${r2(p.y * fit)}) scale(1,${r2(lidScale)})`);
+      `translate(${r2(tx)},${r2(ty)}) scale(1,${r2(lidScale)})`);
     n.inner.setAttribute("transform",
       `matrix(${r2(p.a)},${r2(p.b)},${r2(p.c)},${r2(p.d)},0,0) rotate(${r2(e.tilt)})`);
     n.rect.setAttribute("x", r2(-w / 2)); n.rect.setAttribute("y", r2(-h / 2));
@@ -1898,6 +2190,8 @@ function temperamentFor(name) {
    Scold it and it is subdued for minutes afterwards, so the NEXT thing you do
    lands differently. Nothing on screen reports this; you just notice that it
    has been in a funny mood since you shouted at it.                        */
+/* ADR 0013: mood residue is deposited on events, not integrated from springs.
+   docs/decisions/0013-mood-residue-is-deposited-on-events.md */
 class Mood {
   constructor() { this.v = 0; this.a = 0; this.d = 0; }
 
@@ -1938,7 +2232,8 @@ function makeMoteState() {
     gaze: new Gaze(),
     ambient: true,
 
-  body: BODIES[0], paint: PAINTS[0][1], name: "Mote",
+  /* ADR 0011: Sun geometry is skin state even when another body is worn. */
+  body: BODIES[0], sun: sunOptions(), paint: PAINTS[0][1], name: "Mote", theme: "light",
   bodyFrom: null, bodyAt: -9,   // a change of body morphs; see morphBody
 
   mode: "about", modeUntil: 0,
@@ -1955,6 +2250,8 @@ function makeMoteState() {
   episodes: {},
   episodeOpts: {},
   lastInput: clock,
+  /* Set at mount: a decorative copy never falls asleep on its own. */
+  decorative: false,
   cursor: { x: 0, y: 0, has: false },
   lastStim: "", lastStimAt: -99,
 
@@ -2067,6 +2364,8 @@ const FACE_AT = Object.fromEntries(FACES.map((f) => [f.id, f]));
    feeling. The body kick lands in two beats — a small counter-move, then the
    reaction proper 130ms later — because without anticipation every reaction
    reads as a jump-cut however smoothly it is interpolated. */
+/* ADR 0013: exactly one externally caused opening beat may leave mood residue.
+   docs/decisions/0013-mood-residue-is-deposited-on-events.md */
 function react(faceId, hold, opts = {}) {
   const f = FACE_AT[faceId];
   const n = (opts.kind ? novelty(opts.kind) : 1) * clamp(mote.temper.volatility, 0.4, 1.6);
@@ -2109,7 +2408,10 @@ function say(text, ms) {
   if (mote.onSay) mote.onSay(text, ms);
 }
 
-/* Looking at you means looking at WHERE YOU WERE when he decided to look.
+/* ADR 0016: deliberate attention snapshots rather than tracks its target.
+   docs/decisions/0016-attention-snapshots-targets-instead-of-tracking.md
+
+   Looking at you means looking at WHERE YOU WERE when he decided to look.
    Re-reading the cursor every frame is tracking, however rarely it starts, and
    the eyes glue to the pointer. Snapshot once; hold the fixation. */
 function look(mode, seconds) {
@@ -2153,7 +2455,11 @@ function pickPlace(near) {
   mote.placePitch = clamp(mote.placePitch, -24, 26);
 }
 
-/* Things that occur to him, unprompted.
+/* ADR 0014: autonomous thoughts cover the full face repertoire but leave no
+   mood trace.
+   docs/decisions/0014-autonomous-thoughts-cover-the-repertoire-without-mood-trace.md
+
+   Things that occur to him, unprompted.
 
    The first version of this list named six faces, and a measurement over half
    an hour of him alone found the obvious consequence: eight of the seventeen
@@ -2230,7 +2536,7 @@ function direct(t) {
     mote.dominance.home = mote.restD;
   };
 
-  if (mote.mode !== "asleep" && idle > 52) {
+  if (mote.mode !== "asleep" && idle > 52 && !mote.decorative) {
     mote.mode = "asleep"; mote.modeUntil = t + 999;
     settle(0.05, 0.02, -0.1);
   } else if (mote.mode === "asleep") {
@@ -2361,6 +2667,8 @@ function leaveAnim() {
   anim.morphDur = EXIT_MORPH;
 }
 
+/* ADR 0015: large-field states are omitted under reduced motion.
+   docs/decisions/0015-large-field-motion-is-omitted-under-reduced-motion.md */
 function playAnim(id, hold) {
   const def = STATE_BY_ID[id];
   if (!def) return;
@@ -2372,7 +2680,9 @@ function playAnim(id, hold) {
   /* Whatever is showing becomes the thing we fade FROM — including a state
      that was itself only half-arrived. Its own clock keeps running. */
   anim.prev = anim.cur || { def: null, t0: clock };
-  anim.cur = { def, t0: clock, until: clock + Math.max(def.minDuration ?? 0, hold ?? def.duration) };
+  anim.cur = {
+    def, t0: clock, until: clock + Math.max(def.minDuration ?? 0, hold ?? def.duration),
+  };
   anim.morphT0 = clock;
   anim.morphDur = def.morph;
   if (def.blinkIn) blink(clock, 0.26);
@@ -2398,15 +2708,23 @@ function animBusy() {
 /* One state's contribution, resolved against ordinary life. `baseBody` and
    `baseFace` mean "that channel is not mine", so the body you picked and the
    expression the mood chose come through untouched. */
+/* ADR 0017: silhouette transforms carry facial anchors in the renderer.
+   docs/decisions/0017-body-transforms-carry-facial-anchors.md */
 function poseOfState(def, local, rest) {
   const p = def.pose(local);
+  const sil = def.baseBody ? {
+    ...rest.sil,
+    rot: p.sil.rot, cx: p.sil.cx, cy: p.sil.cy,
+    sx: p.sil.sx, sy: p.sil.sy,
+  } : p.sil;
   return {
-    sil: def.baseBody ? rest.sil : p.sil,
+    sil,
     gaze: def.baseFace ? rest.gaze : p.gaze,
     split: def.baseFace ? rest.split : p.split,
     eyes: def.baseFace ? rest.eyes : p.eyes,
     eyeAlpha: p.eyeAlpha,
-    dots: p.dots, arcs: p.arcs, notif: p.notif, dotsBehind: p.dotsBehind,
+    dots: p.dots, arcs: p.arcs, notif: p.notif,
+    dotsBehind: p.dotsBehind,
   };
 }
 
@@ -2508,9 +2826,12 @@ let nextAnimAt = 24;
 
 function maybeIdleAnim(t) {
   if (t < nextAnimAt) return;
-  nextAnimAt = t + rnd(26, 62);
-  if (animBusy() || mote.mode === "asleep" || t < mote.episodeUntil) return;
+  /* Sleep changes attention and mood, not whether the creature is alive. An
+     ambient avatar keeps its animation loop running after the long-idle mode
+     switch; reduced motion is handled by playAnim itself. */
+  if (animBusy() || t < mote.episodeUntil) return;
   if (mote.hold && t < mote.hold.until) return;
+  nextAnimAt = t + rnd(26, 62);
   let r = Math.random() * IDLE_ANIMS.reduce((n, [w]) => n + w, 0);
   for (const [w, id] of IDLE_ANIMS) if ((r -= w) <= 0) return playAnim(id);
 }
@@ -2928,6 +3249,7 @@ const AGENT_ACTS = {
     epoch++; stopAnim();
     mote.hold = null; mote.episodeUntil = -9;
     mote.lastInput = clock - 52;
+    mote.mode = "asleep"; mote.modeUntil = clock + 999;
     mote.cursor.has = false;
   },
 };
@@ -2944,9 +3266,16 @@ const AGENT_ACTS = {
    ADR 0009: docs/decisions/0009-multi-instance-agent-avatars.md */
 
 function mountMote(host, opts = {}) {
+  /* ADR 0011: Sun settings travel with skins and personas. Switching bodies
+     morphs; editing petals replaces the current Sun profile directly. */
   if (!host) throw new Error("mote: mount needs an element");
 
-  const stage = makeStage(host, { decorative: opts.decorative === true });
+  const stage = makeStage(host, { decorative: opts.decorative === true, theme: opts.theme });
+  /* A decorative copy is not a session, so it has no quiet to fall asleep
+     into: a roster of avatars nobody points at would otherwise all drop
+     asleep 52 seconds after the page loaded and never wake, because only a
+     pointer or a poke wakes one. `asleep()` still puts it under deliberately. */
+  mote.decorative = opts.decorative === true;
   let running = false;
   let raf = 0;
   let last = 0;
@@ -2958,7 +3287,16 @@ function mountMote(host, opts = {}) {
        temperament, so the same name is always the same animal. */
     setSkin(next = {}) {
       /* A change of body MORPHS — it does not swap. See `morphBody`. */
-      if (next.body && BODY_BY_ID[next.body]) morphBody(mote, BODY_BY_ID[next.body], clock);
+      const wasSun = mote.body.id === "sun";
+      if (next.sun) mote.sun = sunOptions({ ...mote.sun, ...next.sun });
+      if (next.body && BODY_BY_ID[next.body]) {
+        const body = next.body === "sun" ? makeSunBody(mote.sun) : BODY_BY_ID[next.body];
+        if (wasSun && next.body === "sun" && next.sun) {
+          mote.body = body; mote.bodyFrom = null; mote.bodyAt = clock;
+        } else morphBody(mote, body, clock);
+      } else if (next.sun && mote.body.id === "sun") {
+        mote.body = makeSunBody(mote.sun); mote.bodyFrom = null; mote.bodyAt = clock;
+      }
       if (next.paint) mote.paint = next.paint;
       if (next.name) { mote.name = next.name; mote.temper = temperamentFor(next.name); }
       return api;
@@ -2970,7 +3308,16 @@ function mountMote(host, opts = {}) {
     look(mode = "about", seconds = 1.4) { look(mode, seconds); return api; },
 
     /* What it currently is. Enough to save and restore one. */
-    skin: () => ({ body: mote.body.id, paint: mote.paint, name: mote.name }),
+    skin: () => ({ body: mote.body.id, paint: mote.paint, name: mote.name, sun: { ...mote.sun } }),
+
+    /* ADR 0012: theme is host context, so it changes eye ink without becoming
+       part of the portable creature persona. */
+    setTheme(theme) {
+      if (theme !== "light" && theme !== "dark") throw new Error('mote: theme must be "light" or "dark"');
+      mote.theme = theme;
+      return api;
+    },
+    theme: () => mote.theme,
 
     /* ADR 0008-snapshot-boundary: Copy the last frame into a decorative host without mounting another
        creature. This is deliberately a rendered SVG snapshot, not a CSS
@@ -3006,11 +3353,14 @@ function mountMote(host, opts = {}) {
       });
       const bodyNode = nodes.find((node) => node.getAttribute("data-mote-body") === "true");
       if (bodyNode && options.body && BODY_BY_ID[options.body]) {
-        bodyNode.setAttribute("d", profilePath(BODY_BY_ID[options.body], R));
+        const snapshotBody = options.body === "sun" ? makeSunBody(options.sun) : BODY_BY_ID[options.body];
+        bodyNode.setAttribute("d", profilePath(snapshotBody, R));
       }
       if (bodyNode && options.paint) {
         bodyNode.setAttribute("fill", options.paint);
-        const ink = eyeInkFor(options.paint);
+      }
+      if (options.paint || options.theme) {
+        const ink = eyeInkFor(options.paint || mote.paint, options.theme || mote.theme);
         nodes.filter((node) => node.tagName === "rect" && node.getAttribute("rx") !== null)
           .forEach((node) => node.setAttribute("fill", ink));
       }
@@ -3056,7 +3406,7 @@ function mountMote(host, opts = {}) {
        round trip is the contract: `Mote.mount(host, avatar.persona())` must
        produce the same animal. */
     persona: () => ({
-      name: mote.name, body: mote.body.id, paint: mote.paint,
+      name: mote.name, body: mote.body.id, paint: mote.paint, sun: { ...mote.sun },
       episodes: Object.fromEntries(Object.entries(mote.episodes).map(([k, steps]) => {
         const settings = mote.episodeOpts[k];
         return [k, settings && settings.mode && settings.mode !== "once"
@@ -3064,7 +3414,7 @@ function mountMote(host, opts = {}) {
       })),
     }),
 
-    /* One of the fourteen, by id, for anyone who wants the vocabulary
+    /* One catalogue animation, by id, for anyone who wants the vocabulary
        directly. */
     animate(id, hold) { playAnim(id, hold); return api; },
     animations: () => STATES.map((s) => ({ id: s.id, label: s.label })),
@@ -3077,6 +3427,9 @@ function mountMote(host, opts = {}) {
 
     /* A pointer position, in -1..1 across the element, for the rare moments
        it chooses to glance over. Optional: it has a life without one. */
+    /* ADR 0016: pointer updates supply future fixation targets; they do not
+       drag a deliberate glance already in progress.
+       docs/decisions/0016-attention-snapshots-targets-instead-of-tracking.md */
     pointer(x, y) {
       mote.cursor = { x: clamp(x, -1.6, 1.6), y: clamp(y, -1.6, 1.6), has: true };
       mote.lastInput = clock;
@@ -3170,6 +3523,7 @@ function mountMote(host, opts = {}) {
   }
 
   mote.ambient = opts.ambient !== false;
+  mote.theme = opts.theme === "dark" ? "dark" : "light";
   /* Checked at MOUNT, not at first play. A persona is usually a config file,
      and a typo in one should surface when the config is loaded rather than
      the first time some rare event fires in front of a user. */
@@ -3259,6 +3613,9 @@ function drawFrame(stage, t, dt) {
      answering it. Null means nothing is playing and nothing is still fading
      out, and the renderer can use the cached body path. */
   const pose = animPose(rest) || rest;
+  /* Keep the current catalogue act observable for embedders and diagnostics;
+     an empty value means the creature is between acts. */
+  stage.svg.setAttribute("data-mote-animation", anim.cur ? anim.cur.def.id : "");
   /* Compact agent rows keep their identity and status choreography, but they
      must not repeatedly lean their eyes toward ambient attention targets. The
      expression and animation channels can still change the face; this final
@@ -3277,11 +3634,13 @@ function drawFrame(stage, t, dt) {
     body: pose === rest && !bodyMorphing(mote) ? mote.body : undefined,
     sil: pose === rest && !bodyMorphing(mote) ? undefined : pose.sil,
     paint: mote.paint,
+    theme: mote.theme,
     x: gx * 7, y: gy * 5,
     gaze: displayedGaze, split: displayedSplit, eyes: displayedEyes,
     eyeAlpha: mote.ambient ? pose.eyeAlpha : 1,
     blinkLid: mote.ambient ? lidClose : 1,
-    dots: pose.dots, arcs: pose.arcs, notif: pose.notif, dotsBehind: pose.dotsBehind,
+    dots: pose.dots, arcs: pose.arcs, notif: pose.notif,
+    dotsBehind: pose.dotsBehind,
   });
 
   if (mote.onFace) mote.onFace(faceId, settled, MOODLINE[faceId]);
@@ -3312,8 +3671,26 @@ const Mote = {
 const field = document.getElementById("field");
 const speechEl = document.getElementById("speech");
 const moodEl = document.getElementById("mood");
+/* ADR 0012: the demo passes its host theme through the same public API an
+   embedder uses. */
+let DEMO_THEME = document.documentElement.dataset.theme === "dark" ||
+  (document.documentElement.dataset.theme !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+  ? "dark" : "light";
 
-const avatar = Mote.mount(field, { manual: true });
+const avatar = Mote.mount(field, { manual: true, theme: DEMO_THEME });
+const themeSwitch = document.getElementById("theme-switch");
+function applyDemoTheme(theme) {
+  DEMO_THEME = theme;
+  document.documentElement.dataset.theme = theme;
+  avatar.setTheme(theme);
+  const next = theme === "dark" ? "light" : "dark";
+  themeSwitch.textContent = next === "dark" ? "Dark" : "Light";
+  themeSwitch.setAttribute("aria-label", `Switch to ${next} theme`);
+  themeSwitch.setAttribute("aria-pressed", String(theme === "dark"));
+  window.dispatchEvent(new CustomEvent("mote-theme", { detail: theme }));
+}
+themeSwitch.addEventListener("click", () => applyDemoTheme(DEMO_THEME === "dark" ? "light" : "dark"));
+applyDemoTheme(DEMO_THEME);
 let shownMood = "";
 
 avatar.onSay((text) => {
@@ -3356,77 +3733,116 @@ window.addEventListener("pointermove", (e) => {
 
 field.addEventListener("pointerdown", () => avatar.poke());
 
-/* ── THE DECK ─────────────────────────────────────────────────────────────
-   Nine things an agent does, driven entirely through the PUBLIC API — these
-   are `avatar.thinking()`, `avatar.tool("search")`, `avatar.error(...)` and
-   nothing else. That is the point of the page: if a button here needs to
-   reach past `Mote.mount` to look right, the API is short of something an
-   integrator will need on their first afternoon.
-
-   Nothing here is an agent. There is no model, no tool call and no work — the
-   whole point is the CREATURE, and what an agent's turn gives it is a reason
-   to wear each face in an order that means something. A face sequence with a
-   cause reads as a mind; the same sequence on a button marked "sad" reads as
-   a menu. */
-/* ADR 0004: the face order behind each of these is the specification, and it
-   lives in the act table, not here. docs/decisions/0004-scripted-episodes.md
-   ADR 0006: the demo is an integrator, not an insider.
-   docs/decisions/0006-embeddable-agent-avatar.md
-   ADR 0005: the animation row below plays the ported catalogue.
-   docs/decisions/0005-animation-catalogue.md */
-const ACTS = [
-  ["Give it a task", () => { avatar.listening(); avatar.after(1.0, () => avatar.thinking()); }],
-  ["Call a tool", () => avatar.tool("search")],
-  ["Stream a reply", () => avatar.speaking("here is what I found.", 2600)],
-  ["Finish the turn", () => avatar.done()],
-  ["Ask for permission", () => avatar.needsInput("may I?")],
-  ["Hit an error", () => avatar.error("...that was me.")],
-  ["Interrupt it", () => avatar.interrupted()],
-  ["Background result", () => avatar.notify()],
-  ["Ship the big one", () => avatar.shipped()],
-  ["Leave it be", () => avatar.asleep()],
+/* The live page is the two Bloub catalogues made tangible: still expressions
+   and measured animation states, each drawn by Mote's real renderer with the
+   current skin and host theme. ADR 0001 and ADR 0005 keep those source values
+   pinned to Bloub; ADR 0004 supplies expression episodes and ADR 0006 the
+   public avatar controls used here. See docs/decisions/0004-scripted-episodes.md,
+   docs/decisions/0005-animation-catalogue.md, and
+   docs/decisions/0006-embeddable-agent-avatar.md. */
+const EXPRESSION_ORDER = [
+  "neutral", "attentive", "surprised", "excited",
+  "happy", "laughing", "angry", "sad",
+  "scared", "suspicious", "confused", "curious",
+  "proud", "shy", "unimpressed", "sleepy",
 ];
-/* One act that is NOT a built-in state. The other ten prove the states work;
-   this one proves an integrator can write an eleventh without us — it is a
-   plain list of beats handed to `avatar.episode`, in the same vocabulary the
-   ten above are made of, and the page knows nothing else about it.
+const catalogueLabel = (id) => id.charAt(0).toUpperCase() + id.slice(1);
+const expressionEl = document.getElementById("expressions");
+const animationEl = document.getElementById("animations");
+const experimentalAnimationEl = document.getElementById("experimental-animations");
+let selectedExpression = "neutral";
+let selectedAnimation = "idle";
 
-   That distinction is the point of the demo (ADR 0006): a surface that only
-   ever calls its own built-ins cannot tell you whether the door is open. */
-const GREETING = [
-  { face: "surprised", hold: 0.7, kind: "hello", blink: true },
-  { face: "happy", hold: 1.2, trace: true, look: ["viewer", 1.4],
-    say: ["oh — hello.", 1600] },
-  { face: "attentive", hold: 1.4 },
-];
-ACTS.push(["Say hello (written)", () => avatar.episode(GREETING)]);
+function catalogueButton(label) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "catalogue-tile";
+  button.setAttribute("aria-label", label);
+  const text = document.createElement("span");
+  text.textContent = label;
+  button.appendChild(text);
+  return { button, text };
+}
 
-const acts = document.getElementById("acts");
-ACTS.forEach(([label, fn]) => {
-  const b = document.createElement("button");
-  b.type = "button"; b.textContent = label;
-  b.addEventListener("click", fn);
-  acts.appendChild(b);
+const expressionTiles = EXPRESSION_ORDER.map((id) => {
+  const face = FACES.find((item) => item.id === id);
+  const { button, text } = catalogueButton(catalogueLabel(id));
+  const stage = makeStage(button, { decorative: true, theme: DEMO_THEME });
+  button.appendChild(text);
+  button.addEventListener("click", () => {
+    selectedExpression = id;
+    selectedAnimation = "";
+    field.classList.remove("is-laughing", "is-surprised");
+    void field.offsetWidth;
+    if (id === "laughing") field.classList.add("is-laughing");
+    if (id === "surprised") field.classList.add("is-surprised");
+    avatar.episode([{ face: id, hold: 30 }]);
+    refreshCatalogues();
+  });
+  expressionEl.appendChild(button);
+  return { id, face, button, stage };
 });
 
-/* ── making one ───────────────────────────────────────────────────────────  */
-/* ── the catalogue, to look at ────────────────────────────────────────────
-   Fourteen buttons and one that plays the lot in the order the reference
-   video cut them. These are not reactions: they carry no mood trace and no
-   speech, they just play. Starting one cancels whatever else was playing,
-   which is why they are all `playAnim` and never queued. */
-/* ADR 0005: docs/decisions/0005-animation-catalogue.md */
-const animsEl = document.getElementById("anims");
-avatar.animations().forEach((s) => {
-  const b = document.createElement("button");
-  b.type = "button"; b.textContent = s.label;
-  b.addEventListener("click", () => avatar.animate(s.id));
-  animsEl.appendChild(b);
+const ANIMATION_SAMPLE = {
+  idle: 0.2, thinking: 0.8, wink: 0.7, wide: 0.8,
+  alert: 0.85, notify: 0.8, exclaim: 0.85, sleep: 1.1,
+  egg: 0.8, hexagon: 0.8, play: 0.9, orbit: 1.0, burst: 0.75, comet: 0.9,
+  nod: 0.42, nope: 0.35, listening: 0.8, peek: 0.72, focus: 0.8,
+  celebrate: 0.55, charge: 1, glitch: 0.62, melt: 1.1, portal: 1.2,
+  magnet: 0.95,
+};
+const animationTiles = STATES.map((state, index) => {
+  const { button, text } = catalogueButton(state.label);
+  const stage = makeStage(button, { decorative: true, theme: DEMO_THEME });
+  button.appendChild(text);
+  button.addEventListener("click", () => {
+    selectedAnimation = state.id;
+    selectedExpression = "";
+    field.classList.remove("is-laughing", "is-surprised");
+    avatar.animate(state.id);
+    refreshCatalogues();
+  });
+  (index < 14 ? animationEl : experimentalAnimationEl).appendChild(button);
+  return { state, button, stage };
 });
-const allBtn = document.createElement("button");
-allBtn.type = "button"; allBtn.textContent = "Play them all";
-allBtn.addEventListener("click", () => playAnimSequence());
-animsEl.appendChild(allBtn);
+
+function refreshCatalogues() {
+  const skin = avatar.skin();
+  const body = skin.body === "sun" ? makeSunBody(skin.sun) : (BODY_BY_ID[skin.body] || BODIES[0]);
+  for (const tile of expressionTiles) {
+    const pose = poseOf(tile.face);
+    drawStage(tile.stage, {
+      ...photoPoseOf(tile.face), body, paint: skin.paint, theme: avatar.theme(),
+    });
+    tile.button.setAttribute("aria-pressed", String(tile.id === selectedExpression));
+  }
+  for (const tile of animationTiles) {
+    const pose = tile.state.pose(ANIMATION_SAMPLE[tile.state.id] || 0.8);
+    if (tile.state.baseBody) pose.sil = bodySil(body);
+    drawStage(tile.stage, { ...pose, paint: skin.paint, theme: avatar.theme() });
+    tile.button.setAttribute("aria-pressed", String(tile.state.id === selectedAnimation));
+  }
+}
+
+window.addEventListener("mote-theme", () => refreshCatalogues());
+refreshCatalogues();
+
+const labView = document.getElementById("lab");
+const labHero = document.getElementById("lab-hero");
+const liveHero = document.querySelector("#live .live-hero");
+const catalogues = document.querySelector("#live .catalogues");
+document.getElementById("lab-open").addEventListener("click", () => {
+  liveView.classList.remove("on");
+  labView.classList.add("on");
+  labHero.appendChild(liveHero);
+  field.querySelector("svg").setAttribute("viewBox", "-240 -170 480 340");
+});
+document.getElementById("lab-back").addEventListener("click", () => {
+  labView.classList.remove("on");
+  liveView.classList.add("on");
+  liveView.insertBefore(liveHero, catalogues);
+  field.querySelector("svg").setAttribute("viewBox", VIEWBOX);
+});
 
 /* ── the creature as JSON ─────────────────────────────────────────────────
    `persona()` is the round trip made visible: what this panel shows is
@@ -3463,8 +3879,9 @@ const previewHost = document.getElementById("preview");
 const nameInput = document.getElementById("name");
 const givenEl = document.getElementById("given");
 
-const draft = { body: BODIES[0], paint: PAINTS[0][1] };
-const preview = makeStage(previewHost, { decorative: true });
+/* ADR 0011: the maker edits the same sun object carried by the public skin. */
+const draft = { body: BODIES[0], paint: PAINTS[0][1], sun: sunOptions() };
+const preview = makeStage(previewHost, { decorative: true, theme: DEMO_THEME });
 
 /* The preview and every tile are the real renderer holding a still pose, so
    what you pick is exactly what you get. */
@@ -3531,18 +3948,38 @@ const tiles = BODIES.map((b) => {
   btn.setAttribute("aria-label", b.label);
   btn.title = b.label;
   btn.setAttribute("aria-pressed", String(b === draft.body));
-  const st = makeStage(btn, { decorative: true });
+  const st = makeStage(btn, { decorative: true, theme: DEMO_THEME });
   const paint = () => drawStage(st, { ...STILL, body: b, paint: draft.paint });
   paint();
   btn.addEventListener("click", () => {
     draft.body = b;
-    morphBody(sprout, b, sprout.t);
+    morphBody(sprout, b.id === "sun" ? makeSunBody(draft.sun) : b, sprout.t);
     tiles.forEach((tb) => tb.btn.setAttribute("aria-pressed", String(tb.body === b)));
+    sunControls.hidden = b.id !== "sun";
     drawPreview();
   });
   shapesEl.appendChild(btn);
-  return { btn, body: b, paint };
+  return { btn, body: b, paint, stage: st };
 });
+
+const sunControls = document.getElementById("sun-controls");
+const sunInputs = [...sunControls.querySelectorAll("input")];
+function syncSunControls() {
+  for (const input of sunInputs) input.value = draft.sun[input.name];
+  sunControls.hidden = draft.body.id !== "sun";
+}
+sunInputs.forEach((input) => input.addEventListener("input", () => {
+  draft.sun = sunOptions({ ...draft.sun, [input.name]: Number(input.value) });
+  const body = makeSunBody(draft.sun);
+  draft.body = BODY_BY_ID.sun;
+  /* Petal sliders edit one body; treating each input event as a body change
+     collapses unlike ray profiles through the core before they settle. */
+  sprout.body = body;
+  sprout.bodyFrom = null;
+  sprout.bodyAt = sprout.t;
+  drawPreview();
+}));
+syncSunControls();
 
 const coloursEl = document.getElementById("colours");
 const dots = PAINTS.map(([name, hex]) => {
@@ -3561,6 +3998,12 @@ const dots = PAINTS.map(([name, hex]) => {
 });
 
 drawPreview();
+
+window.addEventListener("mote-theme", (event) => {
+  preview.theme = event.detail;
+  tiles.forEach((tile) => { tile.stage.theme = event.detail; tile.paint(); });
+  drawPreview();
+});
 
 const backBtn = document.getElementById("back");
 const hatchBtn = document.getElementById("hatch");
@@ -3605,12 +4048,13 @@ function hatch() {
   const first = !hasHatched;
   hasHatched = true;
   const name = (nameInput.value || "").trim() || "Mote";
-  avatar.setSkin({ body: draft.body.id, paint: draft.paint, name });
+  avatar.setSkin({ body: draft.body.id, paint: draft.paint, name, sun: draft.sun });
+  refreshCatalogues();
   givenEl.textContent = name;
   document.title = name;
   makeView.classList.remove("on");
   liveView.classList.add("on");
-  try { localStorage.setItem("mote", JSON.stringify({ body: draft.body.id, paint: draft.paint, name })); } catch {}
+  try { localStorage.setItem("mote", JSON.stringify({ body: draft.body.id, paint: draft.paint, name, sun: draft.sun })); } catch {}
 
   if (!first) return;   // coming back from an edit: do not re-introduce it
 
@@ -3625,7 +4069,7 @@ document.getElementById("change").addEventListener("click", openMaker);
 backBtn.addEventListener("click", () => {
   /* Abandoning an edit puts back what he actually is, not the half-made draft. */
   const was = avatar.skin();
-  draft.body = BODY_BY_ID[was.body]; draft.paint = was.paint;
+  draft.body = BODY_BY_ID[was.body]; draft.paint = was.paint; draft.sun = sunOptions(was.sun);
   nameInput.value = was.name;
   syncPickers();
   makeView.classList.remove("on");
@@ -3638,6 +4082,7 @@ function syncPickers() {
   sprout.body = draft.body; sprout.bodyFrom = null;
   tiles.forEach((tb) => { tb.btn.setAttribute("aria-pressed", String(tb.body === draft.body)); tb.paint(); });
   dots.forEach((d, i) => d.setAttribute("aria-pressed", String(PAINTS[i][1] === draft.paint)));
+  syncSunControls();
   refreshTemper();
   drawPreview();
 }
@@ -3648,6 +4093,7 @@ try {
   if (saved && BODY_BY_ID[saved.body]) {
     draft.body = BODY_BY_ID[saved.body];
     draft.paint = saved.paint;
+    draft.sun = sunOptions(saved.sun);
     nameInput.value = saved.name || "";
     syncPickers();
     hatch();
@@ -3655,7 +4101,6 @@ try {
 } catch {}
 
 requestAnimationFrame(frame);
-
 
 /* ── THE PHOTOROOM ────────────────────────────────────────────────────────
    A still portrait, for when you want the creature as an icon rather than as
@@ -3679,7 +4124,7 @@ requestAnimationFrame(frame);
 const photoView = document.getElementById("photo");
 const photoHost = document.getElementById("photo-preview");
 const photoFacesEl = document.getElementById("photo-faces");
-const photoStage = makeStage(photoHost, { decorative: true });
+const photoStage = makeStage(photoHost, { decorative: true, theme: DEMO_THEME });
 
 /* The face ids are the vocabulary, not prose: "unimpressed" is the name of
    that pose everywhere else in this project, so it is the name on the tile. */
@@ -3719,7 +4164,7 @@ photoTiles = FACES.map((face) => {
   btn.title = photoLabel(face.id);
   btn.setAttribute("aria-label", photoLabel(face.id));
   btn.setAttribute("aria-pressed", String(face === photoPick.face));
-  const st = makeStage(btn, { decorative: true });
+  const st = makeStage(btn, { decorative: true, theme: DEMO_THEME });
   const paint = (body, hex) => drawStage(st, { ...photoPoseOf(face), body, paint: hex });
   btn.addEventListener("click", () => {
     photoPick.face = face;
@@ -3729,10 +4174,16 @@ photoTiles = FACES.map((face) => {
     drawPhoto();
   });
   photoFacesEl.appendChild(btn);
-  return { btn, face, paint };
+  return { btn, face, paint, stage: st };
 });
 
 const photoNameEl = document.getElementById("photo-face-name");
+
+window.addEventListener("mote-theme", (event) => {
+  photoStage.theme = event.detail;
+  photoTiles.forEach((tile) => { tile.stage.theme = event.detail; });
+  drawPhoto();
+});
 
 /* ── taking it away ───────────────────────────────────────────────────────
    The stage's viewBox is already square and centred (-150 -150 300 300), so
