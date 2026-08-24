@@ -198,7 +198,9 @@
     function addTool([title, body, mode], success) { const words = `${title} ${body}`.toLowerCase(); const tone = success || /passed|complete|ready|healthy/.test(words) ? '#78a97d' : /failed|alert|error/.test(words) ? '#d86c62' : '#c89455'; addActivity(title, body, tone, mode) }
     function addThinking(event) { const thoughts = { neutral: 'Mapping the request against the repository structure\nChoosing the safest implementation path', curious: 'Exploring the strongest candidates\nChecking which assumption needs evidence', attentive: 'Reading the latest result closely\nPreparing the next concrete action', confused: 'Reconciling conflicting signals\nTracing which source controls production', suspicious: 'Comparing behavior against the public contract\nLooking for hidden regressions', unimpressed: 'Testing whether the extra complexity earns its place\nDiscarding the weaker approach', shy: 'Looking for a smaller existing path\nChecking whether the current primitives are enough', excited: 'Checking readiness for the next stage\nKeeping the result bounded and reversible', surprised: 'Updating the plan after an unexpected result\nSeparating symptom from cause', scared: 'Assessing the blast radius\nProtecting user state before continuing', sad: 'Tracing where the first approach went wrong\nPreserving the useful parts', angry: 'Narrowing onto the failing lifecycle boundary\nPreparing a focused correction', happy: 'Verifying the evidence agrees across surfaces\nPreparing a concise update', laughing: 'Confirming the final checks one more time\nSummarizing what shipped' }; addActivity('Thinking', event.thinking || thoughts[event.face] || 'Reviewing the latest evidence\nChoosing the next useful action', '#8f887d', null, 'thinking') }
     function setStep(index, finish = false) { document.querySelectorAll('.step').forEach((el, i) => { el.className = `step${i < index || (finish && i === index) ? ' done' : i === index ? ' active' : ''}`; el.querySelector('.status-icon').textContent = i < index || (finish && i === index) ? '✓' : '' }) }
-    function typeSTT(host, text, token, speed = 28, revealFirstWord = false) { const lead = revealFirstWord ? (text.match(/^\S+\s?/)?.[0].length || 1) : 1; host.textContent = text.slice(0, lead); text.slice(lead).split('').forEach((char, index) => timers.push(setTimeout(() => { if (token === runToken) host.textContent += char }, (index + 1) * speed))) }
+    const sttVersions = new WeakMap()
+    function stopSTT(host, clear = false) { sttVersions.set(host, (sttVersions.get(host) || 0) + 1); if (clear) host.textContent = '' }
+    function typeSTT(host, text, token, speed = 28, revealFirstWord = false) { const version = (sttVersions.get(host) || 0) + 1; sttVersions.set(host, version); const lead = revealFirstWord ? (text.match(/^\S+\s?/)?.[0].length || 1) : 1; host.textContent = text.slice(0, lead); text.slice(lead).split('').forEach((char, index) => timers.push(setTimeout(() => { if (token === runToken && sttVersions.get(host) === version) host.textContent += char }, (index + 1) * speed))) }
     function runCall(token) {
       const user = $('call-user-stt'), reply = $('call-agent-stt'), browserStatus = $('call-browser-status'), mic = $('mic-button')
       const later = (ms, fn) => timers.push(setTimeout(() => { if (token === runToken) fn() }, ms))
@@ -210,7 +212,7 @@
         { action: 'browse', face: 'curious', anim: 'orbit', hold: 3200 },
         { action: 'result', face: 'happy', anim: 'notify', hold: 1800 },
         { who: 'agent', text: 'October is generally a great time. Cooler weather, lower humidity, and autumn starts creeping in later in the month.', face: 'happy' },
-        { who: 'user', text: 'Okay. Find me something interesting to do there. Not the obvious tourist stuff.', face: 'excited' },
+        { who: 'user', text: 'Okay. Find me something interesting to do there. Not the obvious tourist stuff.', face: 'excited', bargeIn: 1200 },
         { who: 'agent', text: 'Oh, absolutely.', face: 'excited' },
         { action: 'browse', face: 'curious', anim: 'orbit', hold: 3200 },
         { action: 'think', face: 'curious', anim: 'thinking', hold: 2200 },
@@ -231,7 +233,7 @@
         { action: 'think', face: 'curious', anim: 'thinking', hold: 2600 },
         { who: 'agent', text: 'Actually, instead of throwing random places at you, I should figure out what you like first.', face: 'curious' },
         { who: 'agent', text: 'Museums, technology, food, architecture, nightlife, or completely bizarre experiences?', face: 'proud' },
-        { who: 'user', text: 'Technology and bizarre experiences.', face: 'excited' },
+        { who: 'user', text: 'Technology and bizarre experiences.', face: 'excited', bargeIn: 950 },
         { who: 'agent', text: "That's a dangerous combination.", face: 'excited' },
         { action: 'browse', face: 'curious', anim: 'orbit', hold: 3200 },
         { action: 'result', face: 'happy', anim: 'notify', hold: 1500 },
@@ -246,7 +248,7 @@
         { action: 'browse', face: 'curious', anim: 'orbit', hold: 3000 },
         { action: 'think', face: 'proud', anim: 'thinking', hold: 2400 },
         { who: 'agent', text: 'Done. Breakfast in Shibuya, technology in the morning, lunch nearby, parasite museum in the afternoon, then something considerably less horrifying in the evening.', face: 'proud' },
-        { who: 'user', text: 'You really want me to visit that parasite museum.', face: 'shy' },
+        { who: 'user', text: 'You really want me to visit that parasite museum.', face: 'shy', bargeIn: 1400 },
         { who: 'agent', text: "I've become emotionally invested.", face: 'shy' },
         { who: 'user', text: 'Okay, add it.', face: 'happy' },
         { action: 'write', face: 'happy', anim: 'alert', hold: 1500 },
@@ -296,15 +298,15 @@
         { action: 'idle', face: 'neutral', anim: 'idle', hold: 3000 },
       ]
       let cursor = 500
-      script.forEach((event) => {
+      script.forEach((event, index) => {
         const textDuration = event.text ? event.text.length * (event.who === 'user' ? 28 : 17) : 0
         const duration = event.hold || (event.who === 'agent' ? Math.max(2600, textDuration + 1500) : Math.max(2100, textDuration + 950))
         later(cursor, () => {
-          if (event.who === 'user') { reply.textContent = ''; mic.classList.add('active'); agent.episode([{ face: event.face || 'attentive', anim: 'listening', hold: Math.max(1.8, duration / 1000) }]); typeSTT(user, event.text, token, 28); timers.push(setTimeout(() => { if (token !== runToken) return; mic.classList.remove('active'); if (event.anim && event.anim !== 'listening') agent.episode([{ face: event.face || 'attentive', anim: event.anim, hold: 1.8 }]) }, Math.max(900, duration - 300))) }
+          if (event.who === 'user') { stopSTT(reply, true); mic.classList.add('active'); agent.episode([{ face: event.face || 'attentive', anim: 'listening', hold: Math.max(1.8, duration / 1000) }]); typeSTT(user, event.text, token, 28); timers.push(setTimeout(() => { if (token !== runToken) return; mic.classList.remove('active'); if (event.anim && event.anim !== 'listening') agent.episode([{ face: event.face || 'attentive', anim: event.anim, hold: 1.8 }]) }, Math.max(900, duration - 300))) }
           else if (event.who === 'agent') { mic.classList.remove('active'); const beat = { face: event.face || 'attentive', hold: Math.max(2.6, duration / 1000), ...(event.anim ? { anim: event.anim } : {}) }; typeSTT(reply, event.text, token, 17, true); agent.episode([beat]) }
           else { mic.classList.remove('active'); const beat = { face: event.face || 'neutral', hold: Math.max(1.2, duration / 1000), ...(event.anim ? { anim: event.anim } : {}) }; agent.episode([beat]); if (event.action === 'browse') { browserStatus.classList.add('visible'); typeSTT(browserStatus, 'Browsing the web…', token, 46); timers.push(setTimeout(() => { if (token === runToken) browserStatus.classList.remove('visible') }, duration - 250)) } }
         })
-        cursor += duration + 420
+        cursor += duration + 420 - Math.min(script[index + 1]?.bargeIn || 0, Math.max(0, duration - 900))
       })
     }
     function startCall() {
