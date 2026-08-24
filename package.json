@@ -42,7 +42,7 @@
   },
   "scripts": {
     "build": "node build.mjs",
-    "test": "node --test \"test/*.test.mjs\"",
+    "test": "node --test test/affect.test.mjs test/agent.test.mjs test/anim.test.mjs test/episodes.test.mjs test/expressions.test.mjs test/fitting.test.mjs test/mount.test.mjs test/shapes.test.mjs test/structure.test.mjs",
     "check": "npm run build && npm test",
     "serve": "node serve.mjs",
     "prepare": "node build.mjs"
